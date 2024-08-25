@@ -1,5 +1,7 @@
 package team.co2.medical_records
+import android.hardware.usb.UsbManager
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -37,17 +39,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-
-
-
-
-
+import com.hoho.android.usbserial.driver.UsbSerialProber
+import team.co2.medical_records.service.bluetooth.ESP32Communicator
 
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var esp32SerialCommunicator: ESP32Communicator
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val usbManager = getSystemService(USB_SERVICE) as UsbManager
+        esp32SerialCommunicator = ESP32Communicator(usbManager)
+        val deviceList = esp32SerialCommunicator.getAllUsbDevices()
+        deviceList.forEach { driver ->
+            Log.d("USB_DEVICE", driver.device.toString())
+        }
+
         setContent {
             Medical_RecordsTheme {
 
