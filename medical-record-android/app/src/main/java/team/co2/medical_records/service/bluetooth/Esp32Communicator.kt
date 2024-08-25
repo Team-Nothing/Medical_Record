@@ -37,6 +37,8 @@ class ESP32Communicator(
 
         isRunning = true
         CoroutineScope(Dispatchers.IO).launch {
+            usbSerialPort!!.open(deviceConnection)
+            usbSerialPort!!.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
             val buffer = ByteArray(1024)
             while (isRunning) {
                 val numBytesRead = usbSerialPort!!.read(buffer, 1000)

@@ -1,46 +1,22 @@
 package team.co2.medical_records
-import android.hardware.usb.UsbManager
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.painter.Painter
 import team.co2.medical_records.ui.theme.Medical_RecordsTheme
 import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.* // 用于布局相关的组件
 
-import androidx.compose.ui.Alignment          // 用于对齐选项
-import androidx.compose.ui.unit.sp            // 用于定义 sp 单位
-import androidx.compose.ui.text.font.FontWeight // 用于字体权重
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import com.hoho.android.usbserial.driver.UsbSerialProber
 import team.co2.medical_records.service.bluetooth.ESP32Communicator
+import team.co2.medical_records.service.medical_record_api.MedicalRecordAPI
 
 
 class MainActivity : ComponentActivity() {
@@ -51,12 +27,22 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val usbManager = getSystemService(USB_SERVICE) as UsbManager
-        esp32SerialCommunicator = ESP32Communicator(usbManager)
-        val deviceList = esp32SerialCommunicator.getAllUsbDevices()
-        deviceList.forEach { driver ->
-            Log.d("USB_DEVICE", driver.device.toString())
-        }
+//        val usbManager = getSystemService(USB_SERVICE) as UsbManager
+//        esp32SerialCommunicator = ESP32Communicator(usbManager)
+//        val deviceList = esp32SerialCommunicator.getAllUsbDevices()
+//        deviceList.forEach { driver ->
+//            Log.d("USB_DEVICE", driver.device.deviceName)
+//        }
+
+        val medicalRecordAPI = MedicalRecordAPI()
+        medicalRecordAPI.register("username", "password", {
+            Log.d("XDDREGISTER", "OK")
+            // make toast
+            Toast.makeText(this, "註冊成功", Toast.LENGTH_SHORT).show()
+        }, { code ->
+            Toast.makeText(this, "註冊失敗: $code", Toast.LENGTH_SHORT).show()
+            Log.e("XDDREGISTER", "Error: $code")
+        })
 
         setContent {
             Medical_RecordsTheme {
@@ -104,8 +90,7 @@ class MainActivity : ComponentActivity() {
                 )
                 var SelectItemIndex by rememberSaveable { mutableStateOf(0) }
                Row( modifier = Modifier
-                   .fillMaxWidth()
-                   .padding(16.dp),
+                   .fillMaxWidth(),
                    horizontalArrangement = Arrangement.Start // 确保子项靠左对齐
                 ){
                     NavigationSideBar(
