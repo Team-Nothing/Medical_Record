@@ -27,6 +27,8 @@ class ESP32Communicator(
     fun setDeviceConnection(usbSerialDriver: UsbSerialDriver): ESP32Communicator {
         this.deviceConnection = usbManager.openDevice(usbSerialDriver.device)
         this.usbSerialPort = usbSerialDriver.ports?.get(0)
+
+        Log.d("DEVICE", usbSerialDriver.ports.toString())
         return this
     }
 
@@ -37,6 +39,8 @@ class ESP32Communicator(
 
         isRunning = true
         CoroutineScope(Dispatchers.IO).launch {
+            usbSerialPort!!.open(deviceConnection)
+            usbSerialPort!!.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
             val buffer = ByteArray(1024)
             while (isRunning) {
                 val numBytesRead = usbSerialPort!!.read(buffer, 1000)
