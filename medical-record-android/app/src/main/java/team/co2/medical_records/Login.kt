@@ -20,6 +20,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 
 
 @Composable
@@ -50,6 +51,15 @@ fun LoginScreen() {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "登入:",
+                        color = Color.Black,
+                    )
+                }
 
                 OutlinedTextField(
                     value = username,
@@ -81,14 +91,23 @@ fun LoginScreen() {
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    TextButton(onClick = { /* 處理登入邏輯 */ }) {
-                        Text("已經有帳號？ > 登陸吧 <", color = Color.Black)
+                    TextButton(onClick = { /* 處理登入邏輯 */ },
+                        modifier = Modifier.wrapContentWidth()
+                    ) {
+
+                        Text(
+                            text="還沒有帳號？ > 註冊 <",
+                            color = Color.Black,
+                            style = TextStyle(
+                                fontSize = 12.sp, // Adjust font size as needed
+                            ))
+
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.weight(1f))
                     TextButton(
                         onClick = { /* 處理註冊邏輯 */ },
                         colors = ButtonDefaults.buttonColors(Color(0xFFB589F5)),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.wrapContentWidth()
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically
