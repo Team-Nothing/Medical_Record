@@ -20,15 +20,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.ui.res.painterResource
 
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            RegisterScreen()
-        }
-    }
-}
-
 @Composable
 fun RegisterScreen() {
     var username by remember { mutableStateOf("") }
