@@ -5,7 +5,31 @@ import torch
 
 from fastapi import FastAPI
 
-app = FastAPI()
+description = """
+Medical_Record API helps you do awesome stuff. 🚀
+
+### Authentication
+
+You will be able to:
+
+* **Create/Login Accounts**.
+"""
+
+app = FastAPI(
+    title="Medical Record API",
+    description=description,
+    summary="XDD",
+    version="0.0.1",
+    contact={
+        "name": "Nothing Chang",
+        "url": "https://github.com/I-am-nothing",
+        "email": "jdps99119@gmail.com",
+    },
+    license_info={
+        "name": "Apache 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+    },
+)
 
 
 @app.get("/")

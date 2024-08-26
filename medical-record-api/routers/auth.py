@@ -1,6 +1,7 @@
 import datetime
+import json
+import os
 import traceback
-from email.header import Header
 
 from fastapi import APIRouter, Depends, Request
 from utils.sql_connector import SQLConnector
@@ -8,10 +9,18 @@ from starlette.responses import JSONResponse
 
 from utils.token_manager import TokenManager, Session
 
+api_docs = {}
 router = APIRouter(prefix="/auth")
+api_funcs = ["auth_register", "auth_login", "auth_check_session", "auth_renew_session",
+             "auth_reset_password", "auth_re_authenticate"]
+
+for func in api_funcs:
+    if os.path.exists(f"api-docs/{func}.json"):
+        with open(f"api-docs/{func}.json", "r") as f:
+            api_docs[func] = json.load(f)
 
 
-@router.post("/register")
+@router.post("/register", openapi_extra=api_docs["auth_register"])
 def register(data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     if "username" not in data or "password" not in data:
         return JSONResponse(status_code=400, content={
@@ -48,7 +57,7 @@ def register(data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_
         })
 
 
-@router.post("/login")
+@router.post("/login", openapi_extra=api_docs["auth_login"])
 def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     exp_type = {
         "temporary": 30,
@@ -123,10 +132,11 @@ def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQ
         })
 
 
-@router.post("/check-session")
+@router.post("/check-session", openapi_extra=api_docs["auth_check_session"])
 def check_session(request: Request, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     x_device_id = request.headers.get("X-Device-ID", None)
     auth = request.headers.get("Authorization", "")
+    print(auth)
     auth = auth.replace("Bearer ", "")
     result, uid = TokenManager.check_session(auth, x_device_id)
 
@@ -156,8 +166,26 @@ def check_session(request: Request, sql_connector: SQLConnector = Depends(SQLCon
         })
 
 
-@router.post("/renew-session")
-def renew_session(request: Request, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
+@router.post("/renew-session", openapi_extra=api_docs["auth_renew_session"])
+def renew_session(request: Request,data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
+    exp_type = {
+        "temporary": 30,
+        "device": 60 * 24 * 14
+    }
+
+    if "session" not in data:
+        return JSONResponse(status_code=400, content={
+            "code": "GENERIC/MISSING-FIELDS",
+            "message": "session is required"
+        })
+
+    if data["session"] not in exp_type:
+        return JSONResponse(status_code=400, content={
+            "code": "AUTH/INVALID-SESSION",
+            "message": "Invalid session type"
+        })
+
+    session = data["session"]
     x_device_id = request.headers.get("X-Device-ID", None)
     auth = request.headers.get("Authorization", "")
     auth = auth.replace("Bearer ", "")
@@ -167,7 +195,7 @@ def renew_session(request: Request, sql_connector: SQLConnector = Depends(SQLCon
         try:
             session_info = {
                 "uid": uid,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30),
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=exp_type.get(session, 0)),
                 "device_id": x_device_id
             }
             sql_connector.execute("UPDATE account SET last_active = NOW() WHERE uid = %s;", (uid,))
@@ -198,7 +226,7 @@ def renew_session(request: Request, sql_connector: SQLConnector = Depends(SQLCon
         })
 
 
-@router.post('/reset-password')
+@router.post('/reset-password', openapi_extra=api_docs["auth_reset_password"])
 def reset_password(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     if "password" not in data or "new_password" not in data:
         return JSONResponse(status_code=400, content={
@@ -224,16 +252,16 @@ def reset_password(data: dict, request: Request, sql_connector: SQLConnector = D
         user = sql_connector.query("SELECT uid FROM account WHERE uid = %s", (uid,))
 
         if not user:
-            return JSONResponse(status_code=400, content={
+            return JSONResponse(status_code=401, content={
                 "code": "AUTH/USER-NOT-FOUND",
-                "message": "Username does not exist"
+                "message": "User does not exist"
             })
 
         stored_hashed_password = sql_connector.query("SELECT (password) FROM account WHERE uid = %s", (uid,))
         if not stored_hashed_password:
             return JSONResponse(status_code=401, content={
                 "code": "AUTH/USER-NOT-FOUND",
-                "message": "Username does not exist"
+                "message": "User does not exist"
             })
         stored_hashed_password = stored_hashed_password[0][0]
 
@@ -262,7 +290,8 @@ def reset_password(data: dict, request: Request, sql_connector: SQLConnector = D
             "traceback": f"{traceback.format_exc()}"
         })
 
-@router.post('/re-authencate')
+
+@router.post('/re-authenticate', openapi_extra=api_docs['auth_re_authenticate'])
 def re_authenticate(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     if "password" not in data:
         return JSONResponse(status_code=400, content={

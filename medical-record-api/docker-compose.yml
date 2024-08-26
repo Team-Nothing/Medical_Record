@@ -32,6 +32,7 @@ services:
       - ./configs/:/app/scripts/configs/
       - ./routers/:/app/scripts/routers/
       - ./utils/:/app/scripts/utils/
+      - ./api-docs/:/app/scripts/api-docs/
       - ./main.py:/app/scripts/main.py
     command: fastapi dev main.py --host 0.0.0.0
 
