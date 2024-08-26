@@ -1,0 +1,136 @@
+{
+    "parameters": [
+        {
+            "name": "X-Device-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+                "type": "string"
+            },
+            "description": "if set session to device, it must require device id"
+        }
+    ],
+    "requestBody": {
+        "content": {
+            "application/json": {
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "username": {
+                            "type": "string",
+                            "description": "Username for the account"
+                        },
+                        "password": {
+                            "type": "string",
+                            "description": "Password for the account"
+                        },
+                        "session": {
+                            "type": "string",
+                            "description": "device/temporary"
+                        }
+                    },
+                    "required": ["username", "password", "session"]
+                }
+            }
+        }
+    },
+    "responses": {
+        "200": {
+            "description": "Account login successfully",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "Status code indicating the success of the registration"
+                            },
+                            "message": {
+                                "type": "string",
+                                "description": "Message indicating the success of the registration"
+                            },
+                            "data": {
+                                "type": "object",
+                                "properties": {
+                                    "uid": {
+                                        "type": "string",
+                                        "description": "User ID"
+                                    },
+                                    "token": {
+                                        "type": "string",
+                                        "description": "JWT token for the user"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "400": {
+            "description": "Bad request",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "Status code indicating the success of the registration"
+                            },
+                            "message": {
+                                "type": "string",
+                                "description": "Message indicating the success of the registration"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "401": {
+            "description": "Bad request",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "Status code indicating the success of the registration"
+                            },
+                            "message": {
+                                "type": "string",
+                                "description": "Message indicating the success of the registration"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "500": {
+            "description": "Server Error",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "Status code indicating the success of the registration"
+                            },
+                            "message": {
+                                "type": "string",
+                                "description": "Message indicating the success of the registration"
+                            },
+                            "traceback": {
+                                "type": "string",
+                                "description": "Traceback of the error"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

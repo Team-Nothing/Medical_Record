@@ -1,0 +1,7 @@
+{
+    "host": "host.docker.internal",
+    "port": "5436",
+    "database": "medical_record",
+    "user": "postgres",
+    "password": "postgres"
+}

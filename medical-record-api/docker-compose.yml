@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: medical_record_postgres
+    environment:
+      POSTGRES_DB: 'medical_record'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5436:5432"
+    volumes:
+      - ./.docker-data/postgres:/var/lib/postgresql/data
+      - ./utils/medical_record.sql:/docker-entrypoint-initdb.d/medical_record.sql
+
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: medical_record_api
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./configs/:/app/scripts/configs/
+      - ./routers/:/app/scripts/routers/
+      - ./utils/:/app/scripts/utils/
+      - ./api-docs/:/app/scripts/api-docs/
+      - ./main.py:/app/scripts/main.py
+    command: fastapi dev main.py --host 0.0.0.0
+
+volumes:
+  postgres_data:

@@ -1,0 +1,98 @@
+{
+    "parameters": [
+        {
+            "name": "X-Device-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+                "type": "string"
+            },
+            "description": "if set session to device, it must require device id"
+        },
+        {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+                "type": "string"
+            },
+            "description": "Bearer token for the user, example: \"Bearer TOKEN_STRING\""
+        }
+        ,
+        {
+            "name": "XDD",
+            "in": "header",
+            "required": true,
+            "schema": {
+                "type": "string"
+            },
+            "description": "Bearer token for the user, example: \"Bearer TOKEN_STRING\""
+        }
+    ],
+    "responses": {
+        "200": {
+            "description": "Account Check session successfully",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "Status code indicating the success of the registration"
+                            },
+                            "message": {
+                                "type": "string",
+                                "description": "Message indicating the success of the registration"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "401": {
+            "description": "Bad request",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "Status code indicating the success of the registration"
+                            },
+                            "message": {
+                                "type": "string",
+                                "description": "Message indicating the success of the registration"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "500": {
+            "description": "Server Error",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "Status code indicating the success of the registration"
+                            },
+                            "message": {
+                                "type": "string",
+                                "description": "Message indicating the success of the registration"
+                            },
+                            "traceback": {
+                                "type": "string",
+                                "description": "Traceback of the error"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
