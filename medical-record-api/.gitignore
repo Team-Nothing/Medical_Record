@@ -1,5 +1,6 @@
 .idea
 .venv
 .docker-data
+data
 
 __pycache__

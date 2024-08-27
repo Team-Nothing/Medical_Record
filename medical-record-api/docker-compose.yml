@@ -5,6 +5,7 @@ services:
     image: postgres:16
     container_name: medical_record_postgres
     environment:
+      TZ: Asia/Taipei
       POSTGRES_DB: 'medical_record'
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -29,6 +30,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      - ./data/:/app/scripts/data/
+      - ./tasks/:/app/scripts/tasks/
       - ./configs/:/app/scripts/configs/
       - ./routers/:/app/scripts/routers/
       - ./utils/:/app/scripts/utils/

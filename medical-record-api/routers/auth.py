@@ -60,8 +60,8 @@ def register(data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_
 @router.post("/login", openapi_extra=api_docs["auth_login"])
 def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     exp_type = {
-        "temporary": 30,
-        "device": 60 * 24 * 14
+        "TEMPORARY": 30,
+        "DEVICE": 60 * 24 * 14
     }
 
     if "username" not in data or "password" not in data or "session" not in data:
@@ -73,7 +73,7 @@ def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQ
     if data["session"] not in exp_type:
         return JSONResponse(status_code=400, content={
             "code": "AUTH/INVALID-SESSION",
-            "message": "Invalid session type"
+            "message": "SESSION type must be either TEMPORARY or DEVICE"
         })
 
     username = data["username"]
@@ -110,12 +110,15 @@ def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQ
                 "device_id": x_device_id
             }
 
+            token = TokenManager.create_token(session_info)
+            sql_connector.execute("INSERT INTO session_token (token, account_uid) VALUES (%s, %s);", (token, uid))
+
             return JSONResponse(content={
                 "code": "OK",
                 "message": "Login successful",
                 "data": {
                     "uid": uid,
-                    "token": TokenManager.create_token(session_info)
+                    "token": token
                 }
             })
         else:
@@ -135,10 +138,8 @@ def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQ
 @router.post("/check-session", openapi_extra=api_docs["auth_check_session"])
 def check_session(request: Request, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     x_device_id = request.headers.get("X-Device-ID", None)
-    auth = request.headers.get("Authorization", "")
-    print(auth)
-    auth = auth.replace("Bearer ", "")
-    result, uid = TokenManager.check_session(auth, x_device_id)
+    auth = request.headers.get("Authorization", "").replace("Bearer ", "")
+    result, uid = TokenManager.check_session(auth, x_device_id, sql_connector)
 
     if result == Session.APPROVED:
         try:
@@ -169,8 +170,8 @@ def check_session(request: Request, sql_connector: SQLConnector = Depends(SQLCon
 @router.post("/renew-session", openapi_extra=api_docs["auth_renew_session"])
 def renew_session(request: Request,data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     exp_type = {
-        "temporary": 30,
-        "device": 60 * 24 * 14
+        "TEMPORARY": 30,
+        "DEVICE": 60 * 24 * 14
     }
 
     if "session" not in data:
@@ -187,9 +188,8 @@ def renew_session(request: Request,data: dict, sql_connector: SQLConnector = Dep
 
     session = data["session"]
     x_device_id = request.headers.get("X-Device-ID", None)
-    auth = request.headers.get("Authorization", "")
-    auth = auth.replace("Bearer ", "")
-    result, uid = TokenManager.check_session(auth, x_device_id)
+    auth = request.headers.get("Authorization", "").replace("Bearer ", "")
+    result, uid = TokenManager.check_session(auth, x_device_id, sql_connector)
 
     if result == Session.APPROVED:
         try:
@@ -198,14 +198,18 @@ def renew_session(request: Request,data: dict, sql_connector: SQLConnector = Dep
                 "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=exp_type.get(session, 0)),
                 "device_id": x_device_id
             }
+
+            token = TokenManager.create_token(session_info)
             sql_connector.execute("UPDATE account SET last_active = NOW() WHERE uid = %s;", (uid,))
+            sql_connector.execute("UPDATE session_token SET disabled = TRUE WHERE token = %s;", (auth,))
+            sql_connector.execute("INSERT INTO session_token (token, account_uid) VALUES (%s, %s);", (token, uid))
 
             return JSONResponse(content={
                 "code": "OK",
                 "message": "Session renewed",
                 "data": {
                     "uid": uid,
-                    "token": TokenManager.create_token(session_info)
+                    "token": token
                 }
             })
         except Exception:
@@ -238,9 +242,8 @@ def reset_password(data: dict, request: Request, sql_connector: SQLConnector = D
     new_password = data["new_password"]
 
     x_device_id = request.headers.get("X-Device-ID", None)
-    auth = request.headers.get("Authorization", "")
-    auth = auth.replace("Bearer ", "")
-    result, uid = TokenManager.check_session(auth, x_device_id)
+    auth = request.headers.get("Authorization", "").replace("Bearer ", "")
+    result, uid = TokenManager.check_session(auth, x_device_id, sql_connector)
 
     if result != Session.APPROVED:
         return JSONResponse(status_code=401, content={
@@ -302,9 +305,8 @@ def re_authenticate(data: dict, request: Request, sql_connector: SQLConnector = 
     password = data["password"]
 
     x_device_id = request.headers.get("X-Device-ID", None)
-    auth = request.headers.get("Authorization", "")
-    auth = auth.replace("Bearer ", "")
-    result, uid = TokenManager.check_session(auth, x_device_id)
+    auth = request.headers.get("Authorization", "").replace("Bearer ", "")
+    result, uid = TokenManager.check_session(auth, x_device_id, sql_connector)
 
     if result != Session.APPROVED:
         return JSONResponse(status_code=401, content={
@@ -340,6 +342,34 @@ def re_authenticate(data: dict, request: Request, sql_connector: SQLConnector = 
                 "message": "Passwords do not match"
             })
 
+    except Exception:
+        return JSONResponse(status_code=500, content={
+            "code": "INTERNAL-SERVER-ERROR",
+            "message": "Something went wrong, please try again later",
+            "traceback": f"{traceback.format_exc()}"
+        })
+
+
+@router.post('/logout')
+def logout(request: Request, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
+    x_device_id = request.headers.get("X-Device-ID", None)
+    auth = request.headers.get("Authorization", "").replace("Bearer ", "")
+    result, uid = TokenManager.check_session(auth, x_device_id, sql_connector)
+
+    if result != Session.APPROVED:
+        return JSONResponse(status_code=401, content={
+            "code": "AUTH/INVALID-SESSION" if result == Session.INVALID else "AUTH/SESSION-EXPIRED",
+            "message": "Invalid session" if result == Session.INVALID else "Session expired"
+        })
+
+    try:
+        sql_connector.execute("UPDATE account SET last_active = NOW() WHERE uid = %s;", (uid,))
+        sql_connector.execute("UPDATE session_token SET disabled = TRUE WHERE token = %s;", (auth,))
+
+        return JSONResponse(content={
+            "code": "OK",
+            "message": "Logged out successfully"
+        })
     except Exception:
         return JSONResponse(status_code=500, content={
             "code": "INTERNAL-SERVER-ERROR",

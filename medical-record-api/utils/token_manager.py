@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 from enum import Enum
 
 import jwt
@@ -29,7 +30,7 @@ class TokenManager:
             return None
 
     @staticmethod
-    def check_session(token: str, x_device_id):
+    def check_session(token: str, x_device_id, sql_connector):
         decoded_token = TokenManager.decode_token(token)
 
         try:
@@ -38,8 +39,22 @@ class TokenManager:
             if decoded_token["device_id"] != x_device_id:
                 return Session.INVALID, None
             if decoded_token["exp"] < datetime.datetime.utcnow().timestamp():
-                return Session.EXPIRED, decoded_token
-            return Session.APPROVED, decoded_token["uid"]
+                return Session.EXPIRED, None
 
+            token = sql_connector.query(
+                "SELECT token FROM session_token WHERE token = %s AND disabled = FALSE",
+                (token,)
+            )
+            if token is None or len(token) == 0:
+                return Session.INVALID, None
+
+            return Session.APPROVED, decoded_token["uid"]
         except Exception:
             return Session.INVALID, None
+
+    @staticmethod
+    def calculate_md5(file, chunk_size=4096):
+        md5 = hashlib.md5()
+        while chunk := file.read(chunk_size):
+            md5.update(chunk)
+        return md5.hexdigest()

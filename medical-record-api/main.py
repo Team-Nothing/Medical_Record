@@ -1,4 +1,5 @@
 import importlib
+import multiprocessing
 import os
 
 import torch
@@ -49,8 +50,17 @@ def check_cuda():
     }
 
 
+if not os.path.exists("data/objects"):
+    os.makedirs("data/objects")
+
 for file_name in os.listdir("routers"):
     if file_name.endswith(".py") and file_name != "__init__.py":
         module = importlib.import_module(f"routers.{file_name[:-3]}")
         if hasattr(module, "setup"):
             getattr(module, "setup")(app)
+
+for file_name in os.listdir("tasks"):
+    if file_name.endswith(".py") and file_name != "__init__.py":
+        module = importlib.import_module(f"tasks.{file_name[:-3]}")
+        if hasattr(module, "run"):
+            multiprocessing.Process(target=getattr(module, "run")).start()

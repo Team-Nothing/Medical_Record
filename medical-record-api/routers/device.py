@@ -21,9 +21,8 @@ def add_device(request: Request, data: dict, sql_connector: SQLConnector = Depen
         })
 
     x_device_id = request.headers.get("X-Device-ID", None)
-    auth = request.headers.get("Authorization", "")
-    auth = auth.replace("Bearer ", "")
-    result, uid = TokenManager.check_session(auth, x_device_id)
+    auth = request.headers.get("Authorization", "").replace("Bearer ", "")
+    result, uid = TokenManager.check_session(auth, x_device_id, sql_connector)
 
     if result == Session.APPROVED:
         try:
@@ -68,41 +67,38 @@ def add_device(request: Request, data: dict, sql_connector: SQLConnector = Depen
         })
 
 
-@router.post("/link-bed")
-def link_bed(request: Request, data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
-    if "device_id" not in data or "bed_id" not in data:
+@router.post("/update")
+def add_device(request: Request, data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
+    if "device_type_id" not in data or "bluetooth_mac" not in data or "ipv6" not in data or "ipv4" not in data:
         return JSONResponse(status_code=400, content={
             "code": "GENERIC/MISSING-FIELDS",
-            "message": "Device ID and Bed ID are required"
+            "message": "Device type ID, Bluetooth MAC, IPv6, and IPv4 are required"
         })
 
-    device_id = data["device_id"]
-    bed_id = data["bed_id"]
     x_device_id = request.headers.get("X-Device-ID", None)
-    auth = request.headers.get("Authorization", "")
-    auth = auth.replace("Bearer ", "")
-    result, uid = TokenManager.check_session(auth, x_device_id)
+    auth = request.headers.get("Authorization", "").replace("Bearer ", "")
+    result, uid = TokenManager.check_session(auth, x_device_id, sql_connector)
+
+    device_register_id = request.headers.get("Device-Register-ID", None)
+    if device_register_id is None:
+        return JSONResponse(status_code=400, content={
+            "code": "GENERIC/MISSING-FIELDS",
+            "message": "Device Register ID is required"
+        })
 
     if result == Session.APPROVED:
-        device_id = sql_connector.query(
-            "SELECT device_id FROM device WHERE device_id = %s AND account_uid = %s",
-            (device_id, uid)
-        )
-
-        if device_id is None or len(device_id) == 0:
-            return JSONResponse(status_code=404, content={
-                "code": "DEVICE/NOT-FOUND",
-                "message": "Device not found"
-            })
-
         try:
             sql_connector.execute(
-                "INSERT INTO bed_device (bed_id, device_id) VALUES (%s, %s) ON CONFLICT (device_id) DO NOTHING",
-                (bed_id, device_id[0][0])
+                "UPDATE device SET device_type_id = %s, bluetooth_mac = %s, ipv6 = %s, ipv4 = %s WHERE device_id = %s",
+                (data["device_type_id"], data["bluetooth_mac"], data["ipv6"], data["ipv4"], device_register_id),
             )
-            return JSONResponse(status_code=200, content={
+
+            return JSONResponse(status_code=201, content={
                 "code": "OK",
-                "message": "Device linked to bed"
+                "message": "Device added",
+                "data": {
+                    "device_register_id": device_register_id
+                }
             })
         except Exception:
             return JSONResponse(status_code=500, content={

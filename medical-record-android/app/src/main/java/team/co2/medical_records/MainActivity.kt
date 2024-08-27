@@ -56,7 +56,6 @@ class MainActivity : ComponentActivity() {
             Medical_RecordsTheme {
 
                 val items= listOf(
-
                     NavigationItem(
                         title = "首頁",
                         selectedIcon = painterResource(R.drawable.baseline_home_24),
