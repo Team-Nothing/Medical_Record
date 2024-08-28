@@ -13,6 +13,7 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
@@ -49,7 +50,8 @@ fun NavigationSideBar(
         header = {
             FloatingActionButton(
                 onClick = { /*TODO*/ },
-                elevation = FloatingActionButtonDefaults.elevation()
+                elevation = FloatingActionButtonDefaults.elevation(),
+                containerColor = MaterialTheme.colorScheme.errorContainer
             ) {
                 Icon(
                     painter = painterResource(R.drawable.baseline_add_alert_24),
