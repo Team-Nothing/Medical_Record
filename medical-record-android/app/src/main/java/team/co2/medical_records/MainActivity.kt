@@ -1,4 +1,5 @@
 package team.co2.medical_records
+import SettingScreen
 import android.hardware.usb.UsbManager
 import android.os.Bundle
 import android.util.Log
@@ -31,29 +32,31 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val usbManager = getSystemService(USB_SERVICE) as UsbManager
-        esp32SerialCommunicator = ESP32Communicator(usbManager)
-        val deviceList = esp32SerialCommunicator.getAllUsbDevices()
-        Log.d("USB_DEVICE_LIST", "Detected devices: ${deviceList.size}")
-        deviceList.forEach { driver ->
-            Log.d("USB_DEVICE", driver.device.deviceName)
-        }
-        esp32SerialCommunicator.setDeviceConnection(deviceList[0]).startReading { data ->
-            Log.d("USB_DEVICE", data)
-        }
-
-        val medicalRecordAPI = MedicalRecordAPI()
-        medicalRecordAPI.register("username", "password", {
-            Log.d("XDDREGISTER", "OK")
-            // make toast
-            Toast.makeText(this, "註冊成功", Toast.LENGTH_SHORT).show()
-        }, { code ->
-            Toast.makeText(this, "註冊失敗: $code", Toast.LENGTH_SHORT).show()
-            Log.e("XDDREGISTER", "Error: $code")
-        })
+//        val usbManager = getSystemService(USB_SERVICE) as UsbManager
+//        esp32SerialCommunicator = ESP32Communicator(usbManager)
+//        val deviceList = esp32SerialCommunicator.getAllUsbDevices()
+//        Log.d("USB_DEVICE_LIST", "Detected devices: ${deviceList.size}")
+//        deviceList.forEach { driver ->
+//            Log.d("USB_DEVICE", driver.device.deviceName)
+//        }
+//        esp32SerialCommunicator.setDeviceConnection(deviceList[0]).startReading { data ->
+//            Log.d("USB_DEVICE", data)
+//        }
+//
+//        val medicalRecordAPI = MedicalRecordAPI()
+//        medicalRecordAPI.register("username", "password", {
+//            Log.d("XDDREGISTER", "OK")
+//            // make toast
+//            Toast.makeText(this, "註冊成功", Toast.LENGTH_SHORT).show()
+//        }, { code ->
+//            Toast.makeText(this, "註冊失敗: $code", Toast.LENGTH_SHORT).show()
+//            Log.e("XDDREGISTER", "Error: $code")
+//        })
 
         setContent {
             Medical_RecordsTheme {
+//                RegisterScreen()
+//                LoginScreen()
 
                 val items= listOf(
                     NavigationItem(
@@ -64,7 +67,7 @@ class MainActivity : ComponentActivity() {
 
                         ),
                     NavigationItem(
-                        title = "代辦事項",
+                        title = "待辦事項",
                         selectedIcon = painterResource(R.drawable.baseline_assignment_turned_in_24),
                         unselectedIcon = painterResource(R.drawable.baseline_assignment_turned_in_24),
                         hasNews = false,
@@ -149,6 +152,7 @@ class MainActivity : ComponentActivity() {
                         0 -> PatientCard()
                         1 -> MainContent(reminders,tasks)
                         2 -> ChatScreen(messages)
+                        5 -> SettingScreen()
                     }
 
                 }
