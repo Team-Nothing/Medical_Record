@@ -18,7 +18,7 @@ interface LoginService {
 interface CheckSessionService {
     @Headers("Authorization: Bearer $token")
     @POST("auth/check-session")
-    fun check1Session(): Call<CheckSessionResponse>
+    fun getData(): Call<CheckSessionResponse>
 }
 
 interface RenewSessionService {
