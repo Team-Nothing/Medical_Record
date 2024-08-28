@@ -36,7 +36,7 @@ app = FastAPI(
 @app.get("/")
 def read_root():
     return {
-        "status": "OK",
+        "code": "OK",
         "message": "Medical Record API is running!"
     }
 
@@ -45,7 +45,7 @@ def read_root():
 def check_cuda():
     cuda_available = torch.cuda.is_available()
     return {
-        "status": "OK" if cuda_available else "CUDA/NOT-AVAILABLE",
+        "code": "OK" if cuda_available else "CUDA/NOT-AVAILABLE",
         "message": "CUDA is available" if cuda_available else "CUDA is not available"
     }
 
