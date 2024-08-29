@@ -31,12 +31,6 @@ data class LoginResponse(
     )
 }
 
-//chehk-session -> 使用者傳入
-suspend fun checkSession(): CheckSessionResponse {
-    // server 回傳 CheckSessionResponse
-    return check1Session().execute().body()!!
-}
-
 //chehk-session -> 伺服器回傳
 data class CheckSessionResponse(
     val code: String,
@@ -49,30 +43,6 @@ data class RenewSessionRequest(
 )
 
 data class RenewSessionResponse(
-    val code: String,
-    val message: String,
-    val data: Data
-) {
-    data class Data(
-        val token: String
-    )
-}
-
-data class resetPasswordRequest(
-    val password: String,
-    val new_password: String,
-)
-
-data class resetPasswordResponse(
-    val code: String,
-    val message: String,
-)
-
-data class authenticateRequest(
-    val password: String
-)
-
-data class changePasswordResponse(
     val code: String,
     val message: String,
     val data: Data
