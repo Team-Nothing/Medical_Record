@@ -89,7 +89,7 @@ def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQ
 
     try:
         account = sql_connector.query(
-            "SELECT a.password, bd.bed_id, doc.doctor_id, n.nurse_id "
+            "SELECT a.password, bd.bed_id, doc.doctor_id, n.nurse_id, d.device_id "
             + "FROM account AS a "
             + "INNER JOIN device AS d ON a.uid = d.account_uid "
             + "INNER JOIN bed_device AS bd ON d.device_id = bd.device_id "
@@ -136,7 +136,8 @@ def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQ
                 "data": {
                     "uid": uid,
                     "type": account_type,
-                    "token": token
+                    "token": token,
+                    "device_register_id": account[0][4]
                 }
             })
         else:

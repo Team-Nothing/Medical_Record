@@ -261,7 +261,7 @@ def patient_routine(filter_type: str, request: Request, sql_connector: SQLConnec
             "message": "Device Register ID is required"
         })
 
-    if filter_type not in ["current", "all"]:
+    if filter_type not in ["CURRENT", "ALL"]:
         return JSONResponse(status_code=400, content={
             "code": "GENERIC/INVALID-FILTER",
             "message": "Filter type must be 'current' or 'all'"
@@ -289,7 +289,7 @@ def patient_routine(filter_type: str, request: Request, sql_connector: SQLConnec
             + "INNER JOIN admission_record AS ard ON ar.admission_id = ard.serial_id "\
             + "INNER JOIN bed_device AS bd ON bd.bed_id = ard.bed_id "\
             + "WHERE bd.device_id = %s AND (ar.finished_at IS NULL OR ar.finished_at > (NOW() - INTERVAL '1 HOUR')) "
-        if filter_type == "current":
+        if filter_type == "CURRENT":
             query_string += "AND (ar.time < (NOW() + INTERVAL '1 DAY')) "
         query_string += "ORDER BY ar.time"
 
