@@ -184,7 +184,7 @@ def check_session(request: Request, sql_connector: SQLConnector = Depends(SQLCon
 
             return JSONResponse(content={
                 "code": "OK",
-                "account_type": account_type,
+                "type": account_type,
                 "message": "Session approved"
             })
         except Exception:
