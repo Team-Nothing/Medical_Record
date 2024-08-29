@@ -387,14 +387,15 @@ def medical_transcript(data: dict, request: Request, sql_connector: SQLConnector
 
         result = []
         transcripts = sql_connector.query(
-            "SELECT tr.datetime, f.name, tr.content" + query_string + filter_string + order_by_string + limit_string,
+            "SELECT tr.serial_id, tr.datetime, f.name, tr.content" + query_string + filter_string + order_by_string + limit_string,
             (device_register_id, start_date, end_date, limit_end, limit_start)
         )
         for transcript in transcripts:
             result.append({
-                "datetime": transcript[0].strftime("%m-%dT%H:%M"),
-                "name": transcript[1],
-                "content": transcript[2]
+                "id": transcript[0],
+                "datetime": transcript[1].strftime("%m-%dT%H:%M"),
+                "name": transcript[2],
+                "content": transcript[3]
             })
 
         return JSONResponse(status_code=200, content={
