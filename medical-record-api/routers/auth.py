@@ -91,8 +91,8 @@ def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQ
         account = sql_connector.query(
             "SELECT a.password, bd.bed_id, doc.doctor_id, n.nurse_id, d.device_id "
             + "FROM account AS a "
-            + "INNER JOIN device AS d ON a.uid = d.account_uid "
-            + "INNER JOIN bed_device AS bd ON d.device_id = bd.device_id "
+            + "FULL OUTER JOIN device AS d ON a.uid = d.account_uid "
+            + "FULL OUTER JOIN bed_device AS bd ON d.device_id = bd.device_id "
             + "FULL OUTER JOIN doctor AS doc ON a.uid = doc.account_uid "
             + "FULL OUTER JOIN nurse AS n ON a.uid = n.account_uid "
             + "WHERE username = %s",

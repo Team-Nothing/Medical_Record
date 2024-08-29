@@ -321,7 +321,7 @@ def patient_routine(filter_type: str, request: Request, sql_connector: SQLConnec
         })
 
 
-@router.get("/medical-transcript")
+@router.post("/medical-transcript")
 def medical_transcript(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     device_register_id = request.headers.get("Device-Register-ID", None)
     if device_register_id is None:
@@ -393,7 +393,7 @@ def medical_transcript(data: dict, request: Request, sql_connector: SQLConnector
         for transcript in transcripts:
             result.append({
                 "id": transcript[0],
-                "datetime": transcript[1].strftime("%m-%dT%H:%M"),
+                "datetime": transcript[1].strftime("%Y-%m-%d %H:%M"),
                 "name": transcript[2],
                 "content": transcript[3]
             })
