@@ -14,6 +14,12 @@ router = APIRouter(prefix="/bed-device")
 
 @router.post("/link")
 def link(request: Request, data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
+    if "bed_id" not in data:
+        return JSONResponse(status_code=400, content={
+            "code": "GENERIC/MISSING-FIELDS",
+            "message": "Bed ID is required"
+        })
+
     device_register_id = request.headers.get("Device-Register-ID", None)
     if device_register_id is None:
         return JSONResponse(status_code=400, content={

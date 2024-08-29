@@ -88,17 +88,26 @@ def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQ
         })
 
     try:
-        stored_hashed_password = sql_connector.query("SELECT (password) FROM account WHERE username = %s", (username,))
-        if not stored_hashed_password:
+        account = sql_connector.query(
+            "SELECT a.password, bd.bed_id, doc.doctor_id, n.nurse_id "
+            + "FROM account AS a "
+            + "INNER JOIN device AS d ON a.uid = d.account_uid "
+            + "INNER JOIN bed_device AS bd ON d.device_id = bd.device_id "
+            + "FULL OUTER JOIN doctor AS doc ON a.uid = doc.account_uid "
+            + "FULL OUTER JOIN nurse AS n ON a.uid = n.account_uid "
+            + "WHERE username = %s",
+            (username,)
+        )
+        if not account:
             return JSONResponse(status_code=401, content={
                 "code": "AUTH/USER-NOT-FOUND",
                 "message": "Username does not exist"
             })
-        stored_hashed_password = stored_hashed_password[0][0]
 
-        entered_password_hash = sql_connector.query("SELECT crypt(%s, %s)", (password, stored_hashed_password))[0][0]
+        stored_password_hash = account[0][0]
+        entered_password_hash = sql_connector.query("SELECT crypt(%s, %s)", (password, stored_password_hash))[0][0]
 
-        if entered_password_hash == stored_hashed_password:
+        if entered_password_hash == stored_password_hash:
             uid = sql_connector.query(
                 "SELECT uid FROM account WHERE username = %s;",
                 (username,)
@@ -113,11 +122,20 @@ def login(data: dict, request: Request, sql_connector: SQLConnector = Depends(SQ
             token = TokenManager.create_token(session_info)
             sql_connector.execute("INSERT INTO session_token (token, account_uid) VALUES (%s, %s);", (token, uid))
 
+            account_type = "NONE"
+            if account[0][1] is not None:
+                account_type = "BED-DEVICE"
+            elif account[0][2] is not None:
+                account_type = "DOCTOR"
+            elif account[0][3] is not None:
+                account_type = "NURSE"
+
             return JSONResponse(content={
                 "code": "OK",
                 "message": "Login successful",
                 "data": {
                     "uid": uid,
+                    "type": account_type,
                     "token": token
                 }
             })
@@ -145,8 +163,28 @@ def check_session(request: Request, sql_connector: SQLConnector = Depends(SQLCon
         try:
             sql_connector.execute("UPDATE account SET last_active = NOW() WHERE uid = %s;", (uid,))
 
+            account = sql_connector.query(
+                "SELECT bd.bed_id, doc.doctor_id, n.nurse_id "
+                + "FROM account AS a "
+                + "INNER JOIN device AS d ON a.uid = d.account_uid "
+                + "INNER JOIN bed_device AS bd ON d.device_id = bd.device_id "
+                + "FULL OUTER JOIN doctor AS doc ON a.uid = doc.account_uid "
+                + "FULL OUTER JOIN nurse AS n ON a.uid = n.account_uid "
+                + "WHERE a.uid = %s",
+                (uid,)
+            )
+
+            account_type = "NONE"
+            if account[0][0] is not None:
+                account_type = "BED-DEVICE"
+            elif account[0][1] is not None:
+                account_type = "DOCTOR"
+            elif account[0][2] is not None:
+                account_type = "NURSE"
+
             return JSONResponse(content={
                 "code": "OK",
+                "account_type": account_type,
                 "message": "Session approved"
             })
         except Exception:

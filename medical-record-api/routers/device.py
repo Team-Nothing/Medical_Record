@@ -13,7 +13,7 @@ router = APIRouter(prefix="/device")
 
 
 @router.post("/add")
-def add_device(request: Request, data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
+def add(request: Request, data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     if "device_type_id" not in data or "bluetooth_mac" not in data or "ipv6" not in data or "ipv4" not in data:
         return JSONResponse(status_code=400, content={
             "code": "GENERIC/MISSING-FIELDS",
@@ -68,7 +68,7 @@ def add_device(request: Request, data: dict, sql_connector: SQLConnector = Depen
 
 
 @router.post("/update")
-def add_device(request: Request, data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
+def update(request: Request, data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
     if "device_type_id" not in data or "bluetooth_mac" not in data or "ipv6" not in data or "ipv4" not in data:
         return JSONResponse(status_code=400, content={
             "code": "GENERIC/MISSING-FIELDS",
