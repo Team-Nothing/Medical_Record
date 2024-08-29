@@ -14,25 +14,25 @@ router = APIRouter(prefix="/bed-device")
 
 @router.post("/link")
 def link(request: Request, data: dict, sql_connector: SQLConnector = Depends(SQLConnector.get_connection)):
-    if "device_id" not in data or "bed_id" not in data:
+    device_register_id = request.headers.get("Device-Register-ID", None)
+    if device_register_id is None:
         return JSONResponse(status_code=400, content={
             "code": "GENERIC/MISSING-FIELDS",
-            "message": "Device ID and Bed ID are required"
+            "message": "Device Register ID is required"
         })
 
-    device_id = data["device_id"]
     bed_id = data["bed_id"]
     x_device_id = request.headers.get("X-Device-ID", None)
     auth = request.headers.get("Authorization", "").replace("Bearer ", "")
     result, uid = TokenManager.check_session(auth, x_device_id, sql_connector)
 
     if result == Session.APPROVED:
-        device_id = sql_connector.query(
+        device_register_id = sql_connector.query(
             "SELECT device_id FROM device WHERE device_id = %s AND account_uid = %s",
-            (device_id, uid)
+            (device_register_id, uid)
         )
 
-        if device_id is None or len(device_id) == 0:
+        if device_register_id is None or len(device_register_id) == 0:
             return JSONResponse(status_code=404, content={
                 "code": "DEVICE/NOT-FOUND",
                 "message": "Device not found"
@@ -41,7 +41,7 @@ def link(request: Request, data: dict, sql_connector: SQLConnector = Depends(SQL
         try:
             sql_connector.execute(
                 "INSERT INTO bed_device (bed_id, device_id) VALUES (%s, %s) ON CONFLICT (device_id) DO NOTHING",
-                (bed_id, device_id[0][0])
+                (bed_id, device_register_id[0][0])
             )
             return JSONResponse(status_code=200, content={
                 "code": "OK",
