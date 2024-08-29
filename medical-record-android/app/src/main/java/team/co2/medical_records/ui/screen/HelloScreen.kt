@@ -1,6 +1,7 @@
 package team.co2.medical_records.ui.screen
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.delay
 import team.co2.medical_records.R
+import team.co2.medical_records.service.medical_record_api.AccountType
 import team.co2.medical_records.service.medical_record_api.MedicalRecordAPI
 
 @Composable
@@ -40,9 +42,15 @@ fun HelloScreen(navController: NavHostController, medicalRecordAPI: MedicalRecor
     fun getStatus() {
         medicalRecordAPI.status({
             showError = false
-            medicalRecordAPI.authCheckSession({
-                navController.navigate("select-account-type") {
-                    popUpTo(0) { inclusive = true }
+            medicalRecordAPI.authCheckSession({ accountType ->
+                Log.d("HelloScreen", "accountType: $accountType")
+                when(accountType) {
+                    AccountType.BED_DEVICE -> {
+                        navController.navigate("bed-device") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                    else -> navController.navigate("select-account-type")
                 }
             }, { _ ->
                 navController.navigate("register") {
@@ -90,10 +98,10 @@ fun HelloScreen(navController: NavHostController, medicalRecordAPI: MedicalRecor
                 isCheckingStatus = true
             },
             title = {
-                Text(text = "Network Error")
+                Text(text = "網路錯誤")
             },
             text = {
-                Text(text = "Failed to connect to the server.")
+                Text(text = "無法連接至伺服器")
             },
             confirmButton = {
                 TextButton(

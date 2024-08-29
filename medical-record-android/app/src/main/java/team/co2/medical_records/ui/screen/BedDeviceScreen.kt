@@ -38,6 +38,8 @@ fun BedDeviceScreen(
     var reminders by remember { mutableStateOf(emptyList<Reminder>()) }
     var tasks by remember { mutableStateOf(emptyList<Task>()) }
 
+    var messages by remember { mutableStateOf(emptyList<Message>()) }
+
     val navigationItems = listOf(
         NavigationItem(
             title = "首頁",
@@ -102,7 +104,7 @@ fun BedDeviceScreen(
             onNavigate = { selectItemIndex = it }
         )
         //聊天紀錄
-        val messages = listOf(
+        messages = listOf(
             Message(1,"LED", Role.DOCTOR, "汪汪先生好，昨晚睡得如何", "2024-07-28 10:00", true),
             Message(2,"汪O安", Role.PATIENT, "我要找電燈泡，不是LED", "2024-07-28 10:00", false),
             Message(3,"一隻魚", Role.NURSE, "汪先生，主治醫師在問妳昨晚睡得好嗎", "2024-07-28 10:30", true)

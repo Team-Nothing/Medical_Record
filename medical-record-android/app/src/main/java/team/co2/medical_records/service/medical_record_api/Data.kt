@@ -1,11 +1,6 @@
 package team.co2.medical_records.service.medical_record_api
 
 
-data class GenericResponse(
-    val code: String,
-    val message: String,
-)
-
 data class RegisterRequest(
     val username: String,
     val password: String,
@@ -17,6 +12,22 @@ data class LoginRequest(
     val session: String = "DEVICE"
 )
 
+data class DeviceAddRequest(
+    val device_type_id: String,
+    val bluetooth_mac: String,
+    val ipv6: String,
+    val ipv4: String
+)
+
+data class BedDeviceLinkRequest(
+    val bed_id: String,
+)
+
+data class GenericResponse(
+    val code: String,
+    val message: String,
+)
+
 data class LoginResponse(
     val code: String,
     val message: String,
@@ -24,9 +35,31 @@ data class LoginResponse(
 ) {
     data class Data(
         val uid: String,
+        val type: String,
         val token: String
     )
 }
+
+data class CheckSessionResponse(
+    val code: String,
+    val message: String,
+    val data: Data
+) {
+    data class Data(
+        val type: String,
+    )
+}
+
+data class DeviceAddResponse(
+    val code: String,
+    val message: String,
+    val data: Data
+) {
+    data class Data(
+        val device_register_id: String
+    )
+}
+
 
 
 //

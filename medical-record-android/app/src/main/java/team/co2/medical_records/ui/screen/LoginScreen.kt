@@ -22,8 +22,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.navigation.NavHostController
 import team.co2.medical_records.R
+import team.co2.medical_records.service.medical_record_api.AccountType
 import team.co2.medical_records.service.medical_record_api.AuthError
 import team.co2.medical_records.service.medical_record_api.MedicalRecordAPI
 
@@ -89,6 +91,7 @@ fun LoginScreen(navController: NavHostController, medicalRecordAPI: MedicalRecor
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("請輸入密碼") },
+                    visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
                         onDone = { focusManager.clearFocus() } // Dismiss the keyboard
@@ -123,9 +126,14 @@ fun LoginScreen(navController: NavHostController, medicalRecordAPI: MedicalRecor
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(
                         onClick = {
-                            medicalRecordAPI.authLogin(username, password, {
-                                navController.navigate("select-account-type") {
-                                    popUpTo(0) { inclusive = true }
+                            medicalRecordAPI.authLogin(username, password, { accountType ->
+                                when(accountType) {
+                                    AccountType.BED_DEVICE -> {
+                                        navController.navigate("bed-device") {
+                                            popUpTo(0) { inclusive = true }
+                                        }
+                                    }
+                                    else -> navController.navigate("select-account-type")
                                 }
                             }, { code ->
                                 responseString = when (code) {

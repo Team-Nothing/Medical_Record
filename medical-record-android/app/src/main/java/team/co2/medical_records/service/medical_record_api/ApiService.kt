@@ -11,18 +11,39 @@ interface ApiService {
     fun status(): Call<GenericResponse>
 
     @POST("auth/register")
-    fun register(@Body request: RegisterRequest): Call<GenericResponse>
+    fun authRegister(@Body request: RegisterRequest): Call<GenericResponse>
 
     @POST("auth/login")
-    fun login(
+    fun authLogin(
         @Body request: LoginRequest,
         @Header("X-Device-ID") deviceID: String
     ): Call<LoginResponse>
 
     @POST("auth/check-session")
-    fun checkSession(
+    fun authCheckSession(
         @Header("Authorization") authToken: String,
         @Header("X-Device-ID") deviceID: String
+    ): Call<CheckSessionResponse>
+
+    @POST("auth/logout")
+    fun authLogout(
+        @Header("Authorization") authToken: String,
+        @Header("X-Device-ID") deviceID: String
+    ): Call<GenericResponse>
+
+    @POST("device/add")
+    fun deviceAdd(
+        @Header("Authorization") authToken: String,
+        @Header("X-Device-ID") deviceID: String,
+        @Body request: DeviceAddRequest
+    ): Call<DeviceAddResponse>
+
+    @POST("bed-device/link")
+    fun bedDeviceLink(
+        @Header("Authorization") authToken: String,
+        @Header("X-Device-ID") deviceID: String,
+        @Header("Device-Register-ID") deviceRegisterID: String,
+        @Body request: BedDeviceLinkRequest
     ): Call<GenericResponse>
 }
 
