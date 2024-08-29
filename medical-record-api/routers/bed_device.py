@@ -367,7 +367,7 @@ def medical_transcript(data: dict, request: Request, sql_connector: SQLConnector
             + "FROM transcript_record AS tr "\
             + "INNER JOIN admission_record AS ar ON tr.admission_id = ar.serial_id "\
             + "INNER JOIN bed_device AS bd ON bd.bed_id = ar.bed_id "\
-            + "INNER JOIN feature AS f on tr.feature_id = f.feature_id "\
+            + "LEFT OUTER JOIN feature AS f on tr.feature_id = f.feature_id "\
             + "WHERE bd.device_id = %s "\
 
         filter_string = "AND tr.datetime BETWEEN %s AND %s "
