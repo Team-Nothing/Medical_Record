@@ -3,12 +3,17 @@ package team.co2.medical_records.service.medical_record_api
 import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import team.co2.medical_records.ui.screen.LeftRight
+import team.co2.medical_records.ui.screen.Message
+import team.co2.medical_records.Reminder
+import team.co2.medical_records.Task
 import team.co2.medical_records.service.device.DeviceInformation
 import team.co2.medical_records.ui.screen.BluetoothDevice
 import java.util.concurrent.TimeUnit
@@ -21,8 +26,6 @@ class MedicalRecordAPI(private val context: Context) {
 
     private val apiService: ApiService
     private val deviceInformation: DeviceInformation = DeviceInformation(context)
-    private var deviceId: String = ""
-    private var session: String = ""
 
 
     init {
@@ -35,7 +38,13 @@ class MedicalRecordAPI(private val context: Context) {
         val retrofitForRegister: Retrofit = Retrofit.Builder()
             .baseUrl(SERVER_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(
+                GsonConverterFactory.create(
+                    GsonBuilder()
+                        .serializeNulls()
+                        .create()
+                )
+            )
             .build()
 
         apiService = retrofitForRegister.create(ApiService::class.java)
@@ -118,7 +127,6 @@ class MedicalRecordAPI(private val context: Context) {
                 error(AuthError.MISSING_DEVICE_ID)
                 return@getDeviceId
             }
-            this.deviceId = deviceId
 
             val request = LoginRequest(username.trim(), password.trim())
             apiService.authLogin(request, deviceId).enqueue(object : Callback<LoginResponse> {
@@ -131,7 +139,14 @@ class MedicalRecordAPI(private val context: Context) {
                                     context.getSharedPreferences(
                                         "session", Context.MODE_PRIVATE
                                     ).edit().putString("session", "Bearer ${data.token}").apply()
-                                    this@MedicalRecordAPI.session = data.token
+                                    if (data.device_register_id != null) {
+                                        context.getSharedPreferences(
+                                            "session", Context.MODE_PRIVATE
+                                        ).edit().putString(
+                                            "device-register-id",
+                                            data.device_register_id
+                                        ).apply()
+                                    }
                                     ok(AccountType.fromType(data.type))
                                 } else {
                                     error(AuthError.API_FAILED_FETCH_RESULT)
@@ -157,10 +172,7 @@ class MedicalRecordAPI(private val context: Context) {
     }
 
     fun authCheckSession(ok: (accountType: AccountType) -> Unit, error: (code: AuthError?) -> Unit) {
-        val session =
-            context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("session", "")
-                ?: ""
-
+        val session = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("session", "") ?: ""
         if (session.isEmpty()) {
             error(AuthError.SESSION_NOT_FOUND)
         }
@@ -170,7 +182,6 @@ class MedicalRecordAPI(private val context: Context) {
                 error(AuthError.MISSING_DEVICE_ID)
                 return@getDeviceId
             }
-            this.deviceId = deviceId
 
             apiService.authCheckSession(session, deviceId).enqueue(object : Callback<CheckSessionResponse> {
                 override fun onResponse(
@@ -180,9 +191,7 @@ class MedicalRecordAPI(private val context: Context) {
                     try {
                         when (response.body()?.code) {
                             "OK" -> {
-                                this@MedicalRecordAPI.session = session
                                 val data = response.body()?.data
-                                Log.d("MedicalRecordAPI", "checkSession: ${data?.type}")
                                 ok(AccountType.fromType(response.body()?.data?.type ?: ""))
                             }
                             else -> {
@@ -206,102 +215,111 @@ class MedicalRecordAPI(private val context: Context) {
     }
 
     fun authLogout(ok: () -> Unit, error: (code: AuthError?) -> Unit) {
+        val session = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("session", "") ?: ""
+
         if (session.isEmpty()) {
             error(AuthError.SESSION_NOT_FOUND)
             return
         }
-        if (deviceId.isEmpty()) {
-            error(AuthError.MISSING_DEVICE_ID)
-            return
-        }
+        deviceInformation.getDeviceId { deviceId ->
+            if (deviceId == null) {
+                error(AuthError.MISSING_DEVICE_ID)
+                return@getDeviceId
+            }
 
-        apiService.authLogout(session, deviceId)
-            .enqueue(object : Callback<GenericResponse> {
-                override fun onResponse(
-                    call: Call<GenericResponse>,
-                    response: Response<GenericResponse>
-                ) {
-                    try {
-                        when (response.body()?.code) {
-                            "OK" -> {
-                                context.getSharedPreferences("session", Context.MODE_PRIVATE)
-                                    .edit().remove("session").apply()
-                                context.getSharedPreferences("session", Context.MODE_PRIVATE)
-                                    .edit().remove("device-register-id").apply()
-                                session = ""
-                                ok()
+            apiService.authLogout(session, deviceId)
+                .enqueue(object : Callback<GenericResponse> {
+                    override fun onResponse(
+                        call: Call<GenericResponse>,
+                        response: Response<GenericResponse>
+                    ) {
+                        try {
+                            when (response.body()?.code) {
+                                "OK" -> {
+                                    context.getSharedPreferences("session", Context.MODE_PRIVATE)
+                                        .edit().remove("session").apply()
+                                    context.getSharedPreferences("session", Context.MODE_PRIVATE)
+                                        .edit().remove("device-register-id").apply()
+                                    ok()
+                                }
+
+                                else -> {
+                                    val failedBody = response.errorBody()?.string() ?: ""
+                                    val failed =
+                                        Gson().fromJson(failedBody, GenericResponse::class.java)
+                                    error(AuthError.fromCode(failed.code))
+                                }
                             }
-                            else -> {
-                                val failedBody = response.errorBody()?.string() ?: ""
-                                val failed =
-                                    Gson().fromJson(failedBody, GenericResponse::class.java)
-                                error(AuthError.fromCode(failed.code))
-                            }
+                        } catch (e: Exception) {
+                            Log.e("MedicalRecordAPI", "checkSession: ${e.message}")
+                            error(AuthError.API_FAILED_FETCH_RESULT)
                         }
-                    } catch (e: Exception) {
-                        Log.e("MedicalRecordAPI", "checkSession: ${e.message}")
-                        error(AuthError.API_FAILED_FETCH_RESULT)
                     }
-                }
 
-                override fun onFailure(call: Call<GenericResponse>, t: Throwable) {
-                    error(AuthError.NETWORK)
-                }
-            })
+                    override fun onFailure(call: Call<GenericResponse>, t: Throwable) {
+                        error(AuthError.NETWORK)
+                    }
+                })
+        }
     }
 
     fun deviceAdd(bluetoothDevice: BluetoothDevice?, ok: () -> Unit, error: (code: DeviceError?) -> Unit){
+        val session = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("session", "") ?: ""
         if (session.isEmpty()) {
             error(DeviceError.SESSION_NOT_FOUND)
-            return
-        }
-        if (deviceId.isEmpty()) {
-            error(DeviceError.MISSING_DEVICE_ID)
             return
         }
         if (bluetoothDevice == null || bluetoothDevice.mac.isEmpty()) {
             error(DeviceError.MISSING_BLUETOOTH_MAC)
             return
         }
+        deviceInformation.getDeviceId { deviceId ->
+            if (deviceId == null) {
+                error(DeviceError.MISSING_DEVICE_ID)
+                return@getDeviceId
+            }
 
-        context.getSharedPreferences(
-            "bluetooth-scanner", Context.MODE_PRIVATE
-        ).edit().putString("device-id", bluetoothDevice.deviceId.toString()).apply()
-        context.getSharedPreferences(
-            "bluetooth-scanner", Context.MODE_PRIVATE
-        ).edit().putString("vendor-id", bluetoothDevice.vendorId.toString()).apply()
+            deviceInformation.getIPAddress { ipv4, ipv6 ->
+                val request = DeviceAddRequest("1", bluetoothDevice.mac, ipv6, ipv4)
+                apiService.deviceAdd(session, deviceId, request)
+                    .enqueue(object : Callback<DeviceAddResponse> {
+                        override fun onResponse(
+                            call: Call<DeviceAddResponse>,
+                            response: Response<DeviceAddResponse>
+                        ) {
+                            try {
+                                when (response.body()?.code) {
+                                    "OK" -> {
+                                        val data = response.body()?.data
+                                        if (data != null) {
+                                            context.getSharedPreferences(
+                                                "session", Context.MODE_PRIVATE
+                                            ).edit().putString(
+                                                "device-register-id",
+                                                data.device_register_id
+                                            ).apply()
+                                            ok()
+                                        }
+                                    }
 
-        deviceInformation.getIPAddress{ ipv4, ipv6 ->
-            val request = DeviceAddRequest("1", bluetoothDevice.mac, ipv6, ipv4)
-            apiService.deviceAdd(session, deviceId, request).enqueue(object : Callback<DeviceAddResponse> {
-                override fun onResponse(call: Call<DeviceAddResponse>, response: Response<DeviceAddResponse>) {
-                    try {
-                        when(response.body()?.code) {
-                            "OK" -> {
-                                val data = response.body()?.data
-                                if (data != null) {
-                                    context.getSharedPreferences(
-                                        "session", Context.MODE_PRIVATE
-                                    ).edit().putString("device-register-id", data.device_register_id).apply()
-                                    ok()
+                                    else -> {
+                                        val failedBody = response.errorBody()?.string() ?: ""
+                                        val failed =
+                                            Gson().fromJson(failedBody, GenericResponse::class.java)
+                                        error(DeviceError.fromCode(failed.code))
+                                    }
                                 }
-                            }
-                            else -> {
-                                val failedBody = response.errorBody()?.string() ?: ""
-                                val failed = Gson().fromJson(failedBody, GenericResponse::class.java)
-                                error(DeviceError.fromCode(failed.code))
+                            } catch (e: Exception) {
+                                Log.e("MedicalRecordAPI", "deviceAdd: ${e.message}")
+                                error(DeviceError.API_FAILED_FETCH_RESULT)
                             }
                         }
-                    } catch (e: Exception) {
-                        Log.e("MedicalRecordAPI", "deviceAdd: ${e.message}")
-                        error(DeviceError.API_FAILED_FETCH_RESULT)
-                    }
-                }
 
-                override fun onFailure(call: Call<DeviceAddResponse>, t: Throwable) {
-                    error(DeviceError.NETWORK)
-                }
-            })
+                        override fun onFailure(call: Call<DeviceAddResponse>, t: Throwable) {
+                            error(DeviceError.NETWORK)
+                        }
+                    })
+            }
         }
     }
 
@@ -314,29 +332,258 @@ class MedicalRecordAPI(private val context: Context) {
             val deviceRegisterId =
                 context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("device-register-id", "")
                     ?: ""
-            apiService.bedDeviceLink(session, deviceId, deviceRegisterId, BedDeviceLinkRequest(bedDevice.trim())).enqueue(object : Callback<GenericResponse> {
-                override fun onResponse(call: Call<GenericResponse>, response: Response<GenericResponse>) {
-                    try {
-                        when(response.body()?.code) {
-                            "OK" -> ok()
-                            else -> {
-                                val failedBody = response.errorBody()?.string() ?: ""
-                                val failed = Gson().fromJson(failedBody, GenericResponse::class.java)
-                                error(DeviceError.fromCode(failed.code))
+            val session = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("session", "")
+                ?: ""
+            deviceInformation.getDeviceId { deviceId ->
+                if (deviceId == null) {
+                    error(DeviceError.MISSING_DEVICE_ID)
+                    return@getDeviceId
+                }
+                apiService.bedDeviceLink(
+                    session,
+                    deviceId,
+                    deviceRegisterId,
+                    BedDeviceLinkRequest(bedDevice.trim())
+                ).enqueue(object : Callback<GenericResponse> {
+                    override fun onResponse(
+                        call: Call<GenericResponse>,
+                        response: Response<GenericResponse>
+                    ) {
+                        try {
+                            when (response.body()?.code) {
+                                "OK" -> ok()
+                                else -> {
+                                    val failedBody = response.errorBody()?.string() ?: ""
+                                    val failed =
+                                        Gson().fromJson(failedBody, GenericResponse::class.java)
+                                    error(DeviceError.fromCode(failed.code))
+                                }
                             }
+                        } catch (e: Exception) {
+                            Log.e("MedicalRecordAPI", "bedDeviceAdd: ${e.message}")
+                            error(DeviceError.API_FAILED_FETCH_RESULT)
                         }
-                    } catch (e: Exception) {
-                        Log.e("MedicalRecordAPI", "bedDeviceAdd: ${e.message}")
-                        error(DeviceError.API_FAILED_FETCH_RESULT)
                     }
-                }
 
-                override fun onFailure(call: Call<GenericResponse>, t: Throwable) {
-                    error(DeviceError.NETWORK)
-                }
-            })
+                    override fun onFailure(call: Call<GenericResponse>, t: Throwable) {
+                        error(DeviceError.NETWORK)
+                    }
+                })
+            }
         }, {
             error(it)
         })
     }
+
+    fun bedDeviceGetReminder(ok: (reminders: List<Reminder>) -> Unit, error: (code: DeviceError?) -> Unit) {
+        val session = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("session", "") ?: ""
+        val deviceRegisterId = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("device-register-id", "") ?: ""
+        if (deviceRegisterId.isEmpty()) {
+            error(DeviceError.MISSING_FIELDS)
+            return
+        }
+        deviceInformation.getDeviceId { deviceId ->
+            if (deviceId == null) {
+                error(DeviceError.MISSING_DEVICE_ID)
+                return@getDeviceId
+            }
+            apiService.bedDeviceGetPatientReminders(session, deviceId, deviceRegisterId)
+                .enqueue(object : Callback<BedDevicePatientReminders> {
+                    override fun onResponse(
+                        call: Call<BedDevicePatientReminders>,
+                        response: Response<BedDevicePatientReminders>
+                    ) {
+                        try {
+                            when (response.body()?.code) {
+                                "OK" -> {
+                                    val data = response.body()?.data
+                                    if (data != null) {
+                                        ok(data.map { reminder ->
+                                            Reminder(reminder.title, reminder.finished)
+                                        })
+                                    }
+                                }
+
+                                else -> {
+                                    val failedBody = response.errorBody()?.string() ?: ""
+                                    val failed =
+                                        Gson().fromJson(failedBody, GenericResponse::class.java)
+                                    error(DeviceError.fromCode(failed.code))
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("MedicalRecordAPI", "bedDeviceGetReminder: ${e.message}")
+                            error(DeviceError.API_FAILED_FETCH_RESULT)
+                        }
+                    }
+
+                    override fun onFailure(call: Call<BedDevicePatientReminders>, t: Throwable) {
+                        error(DeviceError.NETWORK)
+                    }
+                })
+        }
+    }
+
+    fun bedDeviceGetRoutine(ok: (reminders: List<Task>) -> Unit, error: (code: DeviceError?) -> Unit, filter: FilterType = FilterType.CURRENT) {
+        val session = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("session", "") ?: ""
+        val deviceRegisterId = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("device-register-id", "") ?: ""
+
+        if (deviceRegisterId.isEmpty()) {
+            error(DeviceError.MISSING_FIELDS)
+            return
+        }
+        deviceInformation.getDeviceId { deviceId ->
+            if (deviceId == null) {
+                error(DeviceError.MISSING_DEVICE_ID)
+                return@getDeviceId
+            }
+            apiService.bedDeviceGetPatientRoutine(session, deviceId, deviceRegisterId, filter.type)
+                .enqueue(object : Callback<BedDevicePatientRoutine> {
+                    override fun onResponse(
+                        call: Call<BedDevicePatientRoutine>,
+                        response: Response<BedDevicePatientRoutine>
+                    ) {
+
+                        try {
+                            when (response.body()?.code) {
+                                "OK" -> {
+                                    val data = response.body()?.data
+                                    if (data != null) {
+                                        ok(data.map { routine ->
+                                            Task(
+                                                routine.time
+                                                    .replace("T", " ")
+                                                    .replace("-", "/"),
+                                                routine.title, routine.description, routine.finished
+                                            )
+                                        })
+                                    }
+                                }
+
+                                else -> {
+                                    val failedBody = response.errorBody()?.string() ?: ""
+                                    Log.e("MedicalRecordAPI", failedBody)
+                                    val failed =
+                                        Gson().fromJson(failedBody, GenericResponse::class.java)
+                                    error(DeviceError.fromCode(failed.code))
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("MedicalRecordAPI", "bedDeviceGetReminder: ${e.message}")
+                            error(DeviceError.API_FAILED_FETCH_RESULT)
+                        }
+                    }
+
+                    override fun onFailure(call: Call<BedDevicePatientRoutine>, t: Throwable) {
+                        error(DeviceError.NETWORK)
+                    }
+                })
+        }
+    }
+
+    fun bedDeviceGetMedicalTranscript(ok: (totalPages: Int, messages: List<Message>) -> Unit, error: (code: DeviceError?) -> Unit, page: Int = 1) {
+        val session = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("session", "") ?: ""
+        val deviceRegisterId = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("device-register-id", "") ?: ""
+
+        if (deviceRegisterId.isEmpty()) {
+            error(DeviceError.MISSING_FIELDS)
+            return
+        }
+        val request = BedDeviceMedicalTranscriptRequest(page = page)
+        deviceInformation.getDeviceId { deviceId ->
+            if (deviceId == null) {
+                error(DeviceError.MISSING_DEVICE_ID)
+                return@getDeviceId
+            }
+            apiService.bedDeviceGetMedicalTranscript(session, deviceId, deviceRegisterId, request)
+                .enqueue(object : Callback<BedDeviceMedicalTranscriptResponse> {
+                    override fun onResponse(
+                        call: Call<BedDeviceMedicalTranscriptResponse>,
+                        response: Response<BedDeviceMedicalTranscriptResponse>
+                    ) {
+                        when (response.body()?.code) {
+                            "OK" -> {
+                                val data = response.body()?.data
+                                if (data != null) {
+                                    ok(data.total_pages, data.items.map { item ->
+                                        Message(
+                                            item.id,
+                                            item.datetime,
+                                            if (item.name == null || item.name.startsWith("病人")) LeftRight.RIGHT else LeftRight.LEFT,
+                                            item.name ?: "未知者",
+                                            item.content
+                                        )
+                                    })
+                                }
+                            }
+
+                            else -> {
+                                val failedBody = response.errorBody()?.string() ?: ""
+                                val failed =
+                                    Gson().fromJson(failedBody, GenericResponse::class.java)
+                                Log.e("MedicalRecordAPI", failed.message)
+                                error(DeviceError.fromCode(failed.code))
+                            }
+                        }
+                        try {
+
+                        } catch (e: Exception) {
+                            Log.e("MedicalRecordAPI", "bedDeviceGetMedicalTranscript: ${e.message}")
+                            error(DeviceError.API_FAILED_FETCH_RESULT)
+                        }
+                    }
+
+                    override fun onFailure(
+                        call: Call<BedDeviceMedicalTranscriptResponse>,
+                        t: Throwable
+                    ) {
+                        error(DeviceError.NETWORK)
+                    }
+                })
+        }
+    }
+
+    fun bedDevicePatientInfo(ok: (info: BedDevicePatientInfoResponse.Data) -> Unit, error: (code: DeviceError?) -> Unit) {
+        val session = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("session", "") ?: ""
+        val deviceRegisterId = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("device-register-id", "") ?: ""
+
+        if (deviceRegisterId.isEmpty()) {
+            error(DeviceError.MISSING_FIELDS)
+            return
+        }
+        deviceInformation.getDeviceId { deviceId ->
+            if (deviceId == null) {
+                error(DeviceError.MISSING_DEVICE_ID)
+                return@getDeviceId
+            }
+            apiService.bedDevicePatientInfo(session, deviceId, deviceRegisterId)
+                .enqueue(object : Callback<BedDevicePatientInfoResponse> {
+                    override fun onResponse(
+                        call: Call<BedDevicePatientInfoResponse>,
+                        response: Response<BedDevicePatientInfoResponse>
+                    ) {
+                        when (response.body()?.code) {
+                            "OK" -> {
+                                val data = response.body()?.data
+                                if (data != null) {
+                                    ok(data)
+                                }
+                            }
+
+                            else -> {
+                                val failedBody = response.errorBody()?.string() ?: ""
+                                val failed =
+                                    Gson().fromJson(failedBody, GenericResponse::class.java)
+                                error(DeviceError.fromCode(failed.code))
+                            }
+                        }
+                    }
+
+                    override fun onFailure(call: Call<BedDevicePatientInfoResponse>, t: Throwable) {
+                        error(DeviceError.NETWORK)
+                    }
+                })
+        }
+    }
+
 }

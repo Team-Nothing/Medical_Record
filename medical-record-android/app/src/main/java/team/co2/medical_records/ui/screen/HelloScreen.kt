@@ -125,7 +125,10 @@ fun HelloScreen(navController: NavHostController, medicalRecordAPI: MedicalRecor
         }
     } else if (isFirst) {
         isFirst = false
-        getStatus()
+        LaunchedEffect(Unit) {
+            delay(1500)
+            getStatus()
+        }
     }
 }
 

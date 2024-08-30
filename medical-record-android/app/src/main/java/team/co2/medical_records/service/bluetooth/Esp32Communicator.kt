@@ -1,5 +1,6 @@
 package team.co2.medical_records.service.bluetooth
 
+import android.content.Context
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbManager
 import android.util.Log
@@ -67,5 +68,26 @@ class ESP32Communicator(
         this.usbSerialPort?.close()
         this.deviceConnection?.close()
         isRunning = false
+    }
+
+    fun saveData(device: UsbSerialDriver, context: Context) {
+        context.getSharedPreferences(
+            "bluetooth-scanner", Context.MODE_PRIVATE
+        ).edit().putInt("device-id", device.device.deviceId).putInt("vendor-id", device.device.vendorId).apply()
+    }
+
+    fun findDevice(context: Context, usbDevices: List<UsbSerialDriver>): Int {
+        val sharedPreferences = context.getSharedPreferences(
+            "bluetooth-scanner", Context.MODE_PRIVATE
+        )
+        val deviceId = sharedPreferences.getInt("device-id", -1)
+        val vendorId = sharedPreferences.getInt("vendor-id", -1)
+
+        usbDevices.forEach{
+            if (it.device.deviceId == deviceId && it.device.vendorId == vendorId) {
+                return usbDevices.indexOf(it)
+            }
+        }
+        return -1
     }
 }

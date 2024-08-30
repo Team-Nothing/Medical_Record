@@ -18,8 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-data class Reminder(val message: String)
-data class Task(val time: String, val description: String)
+data class Reminder(val message: String, val finished: Boolean)
+data class Task(val time: String, val title: String, val description: String?, val finished: Boolean)
 
 @Composable
 fun Routine(reminders: List<Reminder>, tasks: List<Task>) {
@@ -87,6 +87,6 @@ fun TaskList(task: Task) {
         .padding(8.dp)
         .fillMaxSize()
     ) {
-        Text("${task.time} - ${task.description}")
+        Text("${task.time} - ${task.title}")
     }
 }

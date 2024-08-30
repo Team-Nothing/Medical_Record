@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
                 LinkScreen(mainNavController, medicalRecordAPI, LocalContext.current, LinkType.fromType(type ?: ""))
             }
             composable("bed-device") {
-                BedDeviceScreen(mainNavController)
+                BedDeviceScreen(mainNavController, medicalRecordAPI, LocalContext.current)
             }
         }
     }

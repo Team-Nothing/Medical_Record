@@ -1,5 +1,6 @@
-package team.co2.medical_records
+package team.co2.medical_records.ui.screen
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,58 +14,96 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import team.co2.medical_records.R
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 data class Message(
     val id: Int,
+    val time: String,
+    val leftRight: LeftRight,
     val name: String,
-    val role: Role,
-    val content: String,
-    val time: String,// 例如："2024-07-28 10:00
-    val isVoiceMessage: Boolean
+    val content: String
 )
 
-enum class Role {
-    DOCTOR, NURSE, PATIENT
+enum class LeftRight {
+    LEFT, RIGHT
 }
 
 
+@SuppressLint("ReturnFromAwaitPointerEventScope")
 @Composable
-fun ChatScreen(messages: List<Message>) {
+fun TranscriptScreen(messages: List<Message>) {
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    var lastInteractionTime by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000) // Check every second
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastInteractionTime > 15000) { // 15 seconds inactivity
+                coroutineScope.launch {
+                    listState.scrollToItem(0) // Scroll to top
+                }
+                lastInteractionTime = currentTime // Reset the timer after scrolling to the top
+            }
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF3E5F5), shape = RoundedCornerShape(16.dp)),
-        contentPadding = PaddingValues(8.dp)
+            .background(Color(0xFFF3E5F5), shape = RoundedCornerShape(16.dp))
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        if (event.type == PointerEventType.Release) {
+                            lastInteractionTime = System.currentTimeMillis()
+                        }
+                    }
+                }
+            },
+        contentPadding = PaddingValues(8.dp),
+        reverseLayout = true,
+        state = listState,
     ) {
         var lastMessageTime: String? = null
         messages.forEachIndexed { index, message ->
-            if (lastMessageTime == null || shouldShowDateSeparator(lastMessageTime, message.time)) {
-                item {
-                    DateSeparator(message.time)
-                }
-            }
             item {
                 MessageItem(message)
                 Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            if (shouldShowDateSeparator(lastMessageTime, message.time) || index == messages.lastIndex) {
+                item {
+                    DateSeparator(message.time)
+                }
             }
             lastMessageTime = message.time
         }
@@ -74,15 +113,15 @@ fun ChatScreen(messages: List<Message>) {
 @Composable
 fun MessageItem(message: Message) {
     Row(
-        horizontalArrangement = if (message.role == Role.PATIENT) Arrangement.End else Arrangement.Start,
+        horizontalArrangement = if (message.leftRight == LeftRight.RIGHT) Arrangement.End else Arrangement.Start,
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
         val messageTime = LocalDateTime.parse(message.time, formatter).format(timeFormatter)
 
-        if (message.role == Role.PATIENT) {
+        if (message.leftRight == LeftRight.LEFT) {
             Text(text = messageTime, fontSize = 16.sp)
             Spacer(modifier = Modifier.width(8.dp))
         }
@@ -98,28 +137,19 @@ fun MessageItem(message: Message) {
                 verticalAlignment = Alignment.CenterVertically
             ){
 
-                    Icon(
-                        painter = painterResource(R.drawable.baseline_person_24),
-                        contentDescription = null
-                    )
-                    Text(
-                        text = "${message.role} - ${message.name}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-//                    Spacer(modifier = Modifier.weight(1f))
-
-                    if (message.isVoiceMessage) {
-                        Icon(
-                            painter = painterResource(R.drawable.baseline_volume_up_24),
-                            contentDescription = null
-                        )
-                    }
-
-                }
-            Text(text = message.content, fontSize = 16.sp)
+                Icon(
+                    painter = painterResource(R.drawable.baseline_person_24),
+                    contentDescription = null
+                )
+                Text(
+                    text = message.name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
             }
-        if (message.role != Role.PATIENT) {
+            Text(text = message.content, fontSize = 16.sp)
+        }
+        if (message.leftRight == LeftRight.RIGHT) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = messageTime, fontSize = 16.sp)
         }
@@ -134,20 +164,20 @@ fun DateSeparator(time: String) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Divider(
-            color = Color.Gray,
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
             thickness = 1.dp,
-            modifier = Modifier.weight(1f)
+            color = Color.Gray
         )
         Text(
             text = time,
             modifier = Modifier.padding(horizontal = 8.dp),
             color = Color.Gray
         )
-        Divider(
-            color = Color.Gray,
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
             thickness = 1.dp,
-            modifier = Modifier.weight(1f)
+            color = Color.Gray
         )
     }
 }
@@ -161,7 +191,5 @@ fun shouldShowDateSeparator(lastTime: String?, currentTime: String): Boolean {
 
     val minutesBetween = ChronoUnit.MINUTES.between(lastDateTime, currentDateTime)
 
-
-
-    return minutesBetween >= 15
+    return minutesBetween >= 5
 }

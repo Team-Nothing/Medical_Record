@@ -1,6 +1,9 @@
 package team.co2.medical_records.ui.screen
 
 import SettingScreen
+import android.content.Context
+import android.hardware.usb.UsbManager
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -8,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -16,29 +20,71 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.navigation.NavHostController
-import team.co2.medical_records.ChatScreen
+import kotlinx.coroutines.delay
 import team.co2.medical_records.Routine
-import team.co2.medical_records.Message
 import team.co2.medical_records.ui.layout.NavigationItem
 import team.co2.medical_records.ui.layout.NavigationSideBar
-import team.co2.medical_records.PatientCard
 import team.co2.medical_records.R
 import team.co2.medical_records.Reminder
-import team.co2.medical_records.Role
 import team.co2.medical_records.Task
+import team.co2.medical_records.service.bluetooth.BluetoothResponse
+import team.co2.medical_records.service.bluetooth.ESP32Communicator
+import team.co2.medical_records.service.medical_record_api.BedDevicePatientInfoResponse
+import team.co2.medical_records.service.medical_record_api.MedicalRecordAPI
 import team.co2.medical_records.ui.layout.NotImplementedScreen
 
 @Composable
 fun BedDeviceScreen(
-    mainNavController: NavHostController
+    mainNavController: NavHostController,
+    medicalRecordAPI: MedicalRecordAPI,
+    context: Context
 ) {
     var reminders by remember { mutableStateOf(emptyList<Reminder>()) }
     var tasks by remember { mutableStateOf(emptyList<Task>()) }
-
+    var patientInfo: BedDevicePatientInfoResponse.Data? by remember { mutableStateOf(null) }
     var messages by remember { mutableStateOf(emptyList<Message>()) }
+
+    var esp32SerialCommunicator: ESP32Communicator? = null
+    val usbManager = getSystemService(context, UsbManager::class.java)
+    if (usbManager != null) {
+        esp32SerialCommunicator = ESP32Communicator(usbManager)
+    }
+
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            medicalRecordAPI.bedDeviceGetReminder({
+                reminders = it
+            }, { e ->
+                Toast.makeText(mainNavController.context, e?.code ?: "Unknown", Toast.LENGTH_SHORT).show()
+            })
+
+            medicalRecordAPI.bedDeviceGetRoutine({
+                tasks = it
+            }, { e ->
+                Toast.makeText(mainNavController.context, e?.code ?: "Unknown", Toast.LENGTH_SHORT).show()
+            })
+
+            medicalRecordAPI.bedDeviceGetMedicalTranscript({ totals, msgs ->
+                messages = msgs
+            }, {
+                Toast.makeText(mainNavController.context, it?.code ?: "Unknown", Toast.LENGTH_SHORT).show()
+            })
+
+            medicalRecordAPI.bedDevicePatientInfo({ info ->
+                patientInfo = info
+            }, {
+                Toast.makeText(mainNavController.context, it?.code ?: "Unknown", Toast.LENGTH_SHORT).show()
+            })
+
+            delay(30000)
+        }
+    }
 
     val navigationItems = listOf(
         NavigationItem(
@@ -47,7 +93,7 @@ fun BedDeviceScreen(
             unselectedIcon = painterResource(R.drawable.baseline_home_24),
             hasNews = false,
             badgeCount = null,
-            layout = { PatientCard() }
+            layout = { PatientCard(patientInfo) }
         ),
         NavigationItem(
             title = "待辦事項",
@@ -63,7 +109,7 @@ fun BedDeviceScreen(
             unselectedIcon = painterResource(R.drawable.baseline_radio_24),
             hasNews = true,
             badgeCount = null,
-            layout = { ChatScreen(emptyList()) }
+            layout = { TranscriptScreen(messages) }
         ),
         NavigationItem(
             title = "行程表",
@@ -87,7 +133,7 @@ fun BedDeviceScreen(
             unselectedIcon = painterResource(R.drawable.baseline_settings_24),
             hasNews = false,
             badgeCount = null,
-            layout = { SettingScreen() }
+            layout = { SettingScreen(esp32SerialCommunicator, LocalContext.current) }
         ),
     )
     var selectItemIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -103,47 +149,7 @@ fun BedDeviceScreen(
             selectedItemIndex = selectItemIndex,
             onNavigate = { selectItemIndex = it }
         )
-        //聊天紀錄
-        messages = listOf(
-            Message(1,"LED", Role.DOCTOR, "汪汪先生好，昨晚睡得如何", "2024-07-28 10:00", true),
-            Message(2,"汪O安", Role.PATIENT, "我要找電燈泡，不是LED", "2024-07-28 10:00", false),
-            Message(3,"一隻魚", Role.NURSE, "汪先生，主治醫師在問妳昨晚睡得好嗎", "2024-07-28 10:30", true)
-        )
 
-        reminders = listOf(
-            Reminder("晚上12點後禁止飲食，包含飲水"),
-            Reminder("貴重物品簽收單"),
-            Reminder("告知家人或朋友手術時間和地點，以便陪同"),
-            Reminder("告知家人或朋友手術時間和地點，以便陪同"),
-            Reminder("告知家人或朋友手術時間和地點，以便陪同"),
-            Reminder("告知家人或朋友手術時間和地點，以便陪同"),
-            Reminder("告知家人或朋友手術時間和地點，以便陪同"),
-            Reminder("告知家人或朋友手術時間和地點，以便陪同"),
-            Reminder("告知家人或朋友手術時間和地點，以便陪同")
-        )
-
-        tasks = listOf(
-            Task("07:00", "吃降血壓藥"),
-            Task("08:00", "手術及麻醉同意書"),
-            Task("08:05", "手術部位註記"),
-            Task("08:15", "等待進入手術室，並通知主要聯絡人"),
-            Task("08:15", "等待進入手術室，並通知主要聯絡人"),
-            Task("08:15", "等待進入手術室，並通知主要聯絡人"),
-            Task("08:15", "等待進入手術室，並通知主要聯絡人"),
-            Task("08:15", "等待進入手術室，並通知主要聯絡人"),
-            Task("08:15", "等待進入手術室，並通知主要聯絡人"),
-            Task("08:15", "等待進入手術室，並通知主要聯絡人")
-
-        )
-
-//        val views: List<@Composable () -> Unit> = listOf(
-//            { PatientCard() },
-//            { MainContent(reminders, tasks) },
-//            { ChatScreen(messages) },
-//            { NotImplementedScreen() },
-//            { NotImplementedScreen() },
-//            { SettingScreen() }
-//        )
         Box(
             modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp)
         ) {
@@ -153,12 +159,5 @@ fun BedDeviceScreen(
                 Text("Invalid selection")
             }
         }
-
-//        when(selectItemIndex){
-//            0 -> PatientCard()
-//            1 -> MainContent(reminders,tasks)
-//            2 -> ChatScreen(messages)
-//            5 -> SettingScreen()
-//        }
     }
 }
