@@ -1,7 +1,8 @@
 import datetime
 import traceback
+import json
 from email.header import Header
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Request, UploadFile, File, Form, BackgroundTasks
 
@@ -19,10 +20,11 @@ router = APIRouter(prefix="/transcript")
 async def bed_audio_upload(
     request: Request,
     file: UploadFile = File(...),
-    nearby_bluetooth_mac: List[str] = Form(...),
-    file_md5: str = Form(...),
-    start_at: str = Form(...),
-    previous_audio_uid: str = Form(...),
+    data: str = Form(...),
+    # nearby_bluetooth_mac: Optional[List[str]] = Form(None),
+    # file_md5: str = Form(...),
+    # start_at: str = Form(...),
+    # previous_audio_uid: Optional[str] = Form(None),
     sql_connector: SQLConnector = Depends(SQLConnector.get_connection)
 ):
     device_register_id = request.headers.get("Device-Register-ID", None)
@@ -31,6 +33,19 @@ async def bed_audio_upload(
             "code": "GENERIC/MISSING-FIELDS",
             "message": "Device Register ID is required"
         })
+
+    data = json.loads(data)
+
+    if "file_md5" not in data or "start_at" not in data or "previous_audio_uid" not in data:
+        return JSONResponse(status_code=400, content={
+            "code": "GENERIC/MISSING-FIELDS",
+            "message": "File MD5, Start at, and Previous audio ID are required"
+        })
+
+    nearby_bluetooth_mac = data["nearby_bluetooth_mac"]
+    file_md5 = data["file_md5"]
+    start_at = data["start_at"]
+    previous_audio_uid = data["previous_audio_uid"]
 
     x_device_id = request.headers.get("X-Device-ID", None)
     auth = request.headers.get("Authorization", "").replace("Bearer ", "")
@@ -74,24 +89,30 @@ async def bed_audio_upload(
             execute=True
         )[0][0]
 
+        file.file.seek(0)
         with open(f"data/objects/{object_uid}", "wb") as f:
             f.write(file.file.read())
+
+        if nearby_bluetooth_mac is None:
+            nearby_bluetooth_mac = []
 
         nearby_features = sql_connector.query(
             "SELECT f.feature_id FROM feature AS f "
             + "INNER JOIN account AS a ON f.account_uid = a.uid "
             + "INNER JOIN device AS d ON a.uid = d.account_uid "
-            + f"WHERE bluetooth_mac IN {tuple(nearby_bluetooth_mac)}"
+            + f"WHERE bluetooth_mac IN {tuple(nearby_bluetooth_mac)} "
             + "GROUP BY f.feature_id",
             (nearby_bluetooth_mac,)
         )
 
-        for feature in nearby_features:
-            sql_connector.query(
-                "INSERT INTO nearby_feature (audio_uid, feature_id) VALUES (%s, %s)",
-                (object_uid, feature[0]),
-                execute=True
-            )
+        if nearby_features is not None:
+
+            for feature in nearby_features:
+                sql_connector.query(
+                    "INSERT INTO nearby_feature (audio_uid, feature_id) VALUES (%s, %s)",
+                    (object_uid, feature[0]),
+                    execute=True
+                )
 
         sql_connector.execute(
             "INSERT INTO transcript_audio (audio_uid, admission_id, start_at, previous_audio_uid) VALUES (%s, %s, %s, %s)",

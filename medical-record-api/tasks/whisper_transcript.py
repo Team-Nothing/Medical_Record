@@ -168,21 +168,25 @@ def main():
             end = int(min(duration, segment["end"]) * sample_rate)
 
             segment_waveform = waveform[:, start:end]
+            print(segment_waveform.shape)
 
             segment_waveform = speaking_embedding.average_channels(segment_waveform)
-            embedding = speaking_embedding.embedding_model(segment_waveform[None])
-
+            embedding = speaking_embedding.embedding_model(segment_waveform)
             embeddings.append(embedding)
-        embeddings = np.concatenate(embeddings, axis=0)
 
-        print("Task - Whisper Transcript is Clustering...")
-        clustering = AgglomerativeClustering(config['max_speakers']).fit(embeddings)
-        labels = clustering.labels_
+        labels = None
+        if len(embeddings) > 0:
+            embeddings = np.concatenate(embeddings, axis=0)
+        
+            if embeddings.shape[0] > 1:
+                print("Task - Whisper Transcript is Clustering...")
+                clustering = AgglomerativeClustering(min(config['max_speakers'], embeddings.shape[0])).fit(embeddings)
+                labels = clustering.labels_
 
         results = []
         # start time to date string
         end_time = start_time.strftime("%m/%d/%YT%H:%M:%S")
-        labels = labels[len(features):]
+        labels = labels[len(features):] if labels is not None else None
         for i in range(len(segments)):
             if segments[i]["end"] < duration:
 
@@ -194,14 +198,15 @@ def main():
                     unprocessed_audio[0][1]
                 ]
                 end_time = (start_time + datetime.timedelta(seconds=round(segments[i]["end"]))).strftime("%m/%d/%YT%H:%M:%S"),
-                if labels[i] < len(features):
+                if labels is not None and labels[i] < len(features):
                     result[1] = features[labels[i]][0]
 
                 results.append(str(tuple(result)).replace("None", "NULL"))
 
-        sql_connector.execute(
-            f"INSERT INTO transcript_record (admission_id, feature_id, datetime, content, audio_uid) VALUES {', '.join(results)}",
-        )
+        if len(results) != 0:
+            sql_connector.execute(
+                f"INSERT INTO transcript_record (admission_id, feature_id, datetime, content, audio_uid) VALUES {', '.join(results)}",
+            )
 
         sql_connector.execute(
             "UPDATE transcript_audio SET end_at = %s, processed_at = NOW() WHERE audio_uid = %s",
@@ -212,4 +217,8 @@ def main():
 
 
 def run():
+    main()
+
+
+if __name__ == "__main__":
     main()

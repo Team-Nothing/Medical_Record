@@ -4,7 +4,7 @@ ENV TZ=Asia/Taipei
 ADD ./requirements.txt /app/scripts/requirements.txt
 
 RUN apt update && apt install ffmpeg cython3 -y
-RUN apt-get update && apt-get install -y tzdata
+RUN apt-get update && apt-get install -y tzdata && apt-get install -y supervisor
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt-get install -y git

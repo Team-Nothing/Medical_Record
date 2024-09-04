@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.3 (Debian 16.3-1.pgdg120+1)
+-- Dumped from database version 16.4 (Debian 16.4-1.pgdg120+1)
 -- Dumped by pg_dump version 16.3
 
 SET statement_timeout = 0;
@@ -57,7 +57,8 @@ CREATE TABLE public.account (
     username character varying(50) NOT NULL,
     password character varying(128) NOT NULL,
     last_login timestamp without time zone DEFAULT now(),
-    last_active timestamp without time zone DEFAULT now()
+    last_active timestamp without time zone DEFAULT now(),
+    disabled boolean DEFAULT false NOT NULL
 );
 
 
@@ -990,9 +991,7 @@ ALTER TABLE ONLY public.transcript_record ALTER COLUMN serial_id SET DEFAULT nex
 -- Data for Name: account; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.account (uid, username, password, last_login, last_active) FROM stdin;
-4f9944c7-653a-45bd-85bc-da1712681a40	username	$2a$06$2e6DtejPwxOMlToYHRAlq.5P06aQLjHp5ORbxwBo8D/mioFeE9eZu	2024-08-27 13:47:36.233752	2024-08-27 13:47:36.233752
-8ea39cec-a142-4925-a2cd-35d12189624d	nothing-chang2	$2a$06$npF3Hom0iTbNw83aopcBTORif8m.ke8ioXRXXy.uG6a9NPtIMs5Uy	2024-08-27 13:49:21.028062	2024-08-27 13:49:21.028062
+COPY public.account (uid, username, password, last_login, last_active, disabled) FROM stdin;
 \.
 
 
@@ -1013,6 +1012,9 @@ COPY public.admission_reminder (serial_id, admission_id, title, "order", finishe
 2	1	貴重物品簽收單	1	\N
 3	1	告知家人或朋友手術時間和地點，以便陪同	2	\N
 1	1	晚上12點後禁止飲食，包含飲水	3	\N
+4	1	確保每日睡眠時間不少於7小時 	4	\N
+5	1	早上喝一杯溫水後再進食	5	\N
+6	1	禁止飲酒，含啤酒、果汁和水果茶	6	\N
 \.
 
 
@@ -1025,6 +1027,10 @@ COPY public.admission_routine (serial_id, admission_id, "time", title, descripti
 2	1	2024-08-27 08:00:00	手術及麻醉同意書	\N	\N
 3	1	2024-08-27 08:05:00	手術部位註記	\N	\N
 4	1	2024-08-27 08:15:00	等待進入手術室，並通知主要聯絡人	\N	\N
+5	1	2024-08-23 14:02:31	讓醫生或護士檢查手術前最後一點 	\N	\N
+6	1	2024-08-04 15:10:05	確認手術細節	\N	\N
+7	1	2024-07-29 23:10:18	填寫病人資訊	\N	\N
+8	1	2024-08-25 21:10:27	與主治醫生確認所有事項	\N	\N
 \.
 
 
@@ -1052,7 +1058,6 @@ COPY public.bed (bed_id, bed_type_id, floor, room_number, bed_position) FROM std
 --
 
 COPY public.bed_device (device_id, bed_id) FROM stdin;
-1	1
 \.
 
 
@@ -1089,7 +1094,7 @@ COPY public.blood (blood_id, name) FROM stdin;
 --
 
 COPY public.department (department_id, main_doctor_id, name, description) FROM stdin;
-1	1	Psychiatry	A medical specialty dedicated to diagnosing, treating, and preventing mental health disorders. It involves therapies, medications, and counseling to help patients manage conditions like depression, anxiety, and schizophrenia.
+1	1	心臟外科 	大動脈轉位
 \.
 
 
@@ -1098,8 +1103,6 @@ COPY public.department (department_id, main_doctor_id, name, description) FROM s
 --
 
 COPY public.device (device_id, device_type_id, account_uid, bluetooth_mac, ipv6, ipv4) FROM stdin;
-1	1	8ea39cec-a142-4925-a2cd-35d12189624d	00:1A:3F:F1:4C:C6	fe80::cf44:53e5:5c18:6be9	192.168.87.87
-5	1	4f9944c7-653a-45bd-85bc-da1712681a40	00:1A:3F:F1:4C:C8	fe80::cf44:53e5:5c18:7cfa	192.168.87.88
 \.
 
 
@@ -1117,8 +1120,8 @@ COPY public.device_type (device_type_id, name, description) FROM stdin;
 --
 
 COPY public.doctor (doctor_id, name, email, feature_id, account_uid, image_uid) FROM stdin;
-1	Dr. LED	ledlab2391@gmail.com	2	\N	\N
-2	Dr. Nothing	jdps99119@gmail.com	3	\N	\N
+1	Dr. LED	ledlab2391@gmail.com	\N	\N	\N
+2	Dr. Nothing	jdps99119@gmail.com	\N	\N	\N
 \.
 
 
@@ -1150,10 +1153,6 @@ COPY public.family_type (family_type_id, name) FROM stdin;
 --
 
 COPY public.feature (feature_id, model_id, name, account_uid, dim_uid, audio_uid) FROM stdin;
-2	1	醫生-LED	\N	b175a290-e747-4372-89e4-f7334825b5fd	\N
-1	1	病人-汪上安	4f9944c7-653a-45bd-85bc-da1712681a40	b175a290-e747-4372-89e4-f7334825b5f1	\N
-3	1	醫生-Nothing	8ea39cec-a142-4925-a2cd-35d12189624d	b175a290-e747-4372-89e4-f7334825b5f2	\N
-5	1	XDD - Nothing	8ea39cec-a142-4925-a2cd-35d12189624d	1106badf-be86-4f65-bc57-0749a6b0847e	7d3bd7eb-7b30-4798-809e-57f01a8f7762
 \.
 
 
@@ -1162,8 +1161,8 @@ COPY public.feature (feature_id, model_id, name, account_uid, dim_uid, audio_uid
 --
 
 COPY public.gender (gender_id, name) FROM stdin;
-1	Male
-2	Female
+1	男性
+2	女性
 \.
 
 
@@ -1172,10 +1171,10 @@ COPY public.gender (gender_id, name) FROM stdin;
 --
 
 COPY public.language (language_id, name) FROM stdin;
-1	Chinese
-2	English
-3	Japanese
-4	Vietnamese
+3	日語
+1	中文
+2	英文
+4	越南語
 \.
 
 
@@ -1193,14 +1192,6 @@ COPY public.model (model_id, name, version, description) FROM stdin;
 --
 
 COPY public.nearby_feature (audio_uid, feature_id) FROM stdin;
-b175a290-e747-4372-89e4-f7334825b5fd	1
-b175a290-e747-4372-89e4-f7334825b5fd	3
-23b064ed-c66a-45d9-8a9d-1ee9efed7af6	1
-23b064ed-c66a-45d9-8a9d-1ee9efed7af6	3
-165f94a2-807e-48bf-ad97-201a4d9f1376	1
-165f94a2-807e-48bf-ad97-201a4d9f1376	3
-1a7f5905-41a9-40f2-adc8-df3a0dbd876f	1
-1a7f5905-41a9-40f2-adc8-df3a0dbd876f	3
 \.
 
 
@@ -1210,6 +1201,7 @@ b175a290-e747-4372-89e4-f7334825b5fd	3
 
 COPY public.nurse (nurse_id, name, email, feature_id, account_uid, image_uid) FROM stdin;
 1	Fish	fish@gmail.com	\N	\N	\N
+2	洪品璇	c111118130＠nkust.edu.tw	\N	\N	\N
 \.
 
 
@@ -1218,17 +1210,6 @@ COPY public.nurse (nurse_id, name, email, feature_id, account_uid, image_uid) FR
 --
 
 COPY public.object (uid, account_uid, object_id, visibility, description, created_at, extension) FROM stdin;
-b175a290-e747-4372-89e4-f7334825b5fd	8ea39cec-a142-4925-a2cd-35d12189624d	audio-record-08-27-2024-19-11	f	\N	2024-08-27 11:11:57.90846	.mp3
-23b064ed-c66a-45d9-8a9d-1ee9efed7af6	8ea39cec-a142-4925-a2cd-35d12189624d	XDDd_1min.mp3	f	\N	2024-08-27 13:57:32.193877	.mp3
-b175a290-e747-4372-89e4-f7334825b5f2	8ea39cec-a142-4925-a2cd-35d12189624d	BBB	f	\N	2024-08-27 18:26:35.594307	\N
-b175a290-e747-4372-89e4-f7334825b5f3	8ea39cec-a142-4925-a2cd-35d12189624d	CCC	f	\N	2024-08-27 18:26:35.594307	\N
-b175a290-e747-4372-89e4-f7334825b5f1	4f9944c7-653a-45bd-85bc-da1712681a40	AAA	f	\N	2024-08-27 18:26:35.594307	\N
-165f94a2-807e-48bf-ad97-201a4d9f1376	8ea39cec-a142-4925-a2cd-35d12189624d	fda.mp3	f	\N	2024-08-27 14:15:24.748167	.mp3
-1a7f5905-41a9-40f2-adc8-df3a0dbd876f	8ea39cec-a142-4925-a2cd-35d12189624d	fasf	f	\N	2024-08-27 21:02:10.228254	mp3
-13bc2350-9005-4c47-b43a-003cd2341858	8ea39cec-a142-4925-a2cd-35d12189624d	fasfaf	f	\N	2024-08-27 21:21:18.676074	\N
-c42a2ef0-1461-4ce4-bf59-61eb131ea65a	8ea39cec-a142-4925-a2cd-35d12189624d	XDD_1min.mp3	f	\N	2024-08-27 21:32:47.747672	\N
-7d3bd7eb-7b30-4798-809e-57f01a8f7762	8ea39cec-a142-4925-a2cd-35d12189624d	XDD_1min	f	\N	2024-08-27 21:43:29.09291	mp3
-1106badf-be86-4f65-bc57-0749a6b0847e	8ea39cec-a142-4925-a2cd-35d12189624d	feature	f	\N	2024-08-27 21:43:33.476983	npy
 \.
 
 
@@ -1238,7 +1219,7 @@ c42a2ef0-1461-4ce4-bf59-61eb131ea65a	8ea39cec-a142-4925-a2cd-35d12189624d	XDD_1m
 
 COPY public.patient (uid, name, email, phone, address, birth, gender_id, blood_id, language_id, feature_id, image_uid) FROM stdin;
 1bdcd810-3f7d-4b5b-a647-38c2ec85bb78	XDD	xdd@gmail.com	0987877887	高雄市楠梓區 XDD XDD XDD	1987-01-01	2	6	2	\N	\N
-dc9f8ae2-5a12-4cba-a366-2120417d6ba0	汪上安	wsan92@gmail.com	0918214333	高雄市橋頭區 XDD XDD XDD	2003-03-08	1	4	1	1	\N
+dc9f8ae2-5a12-4cba-a366-2120417d6ba0	汪 O 安	wsan92@gmail.com	0918214333	高雄市橋頭區 XDD XDD XDD	2003-04-22	1	4	1	\N	\N
 \.
 
 
@@ -1247,10 +1228,6 @@ dc9f8ae2-5a12-4cba-a366-2120417d6ba0	汪上安	wsan92@gmail.com	0918214333	高�
 --
 
 COPY public.session_token (token, account_uid, created_at, disabled) FROM stdin;
-eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiI0Zjk5NDRjNy02NTNhLTQ1YmQtODViYy1kYTE3MTI2ODFhNDAiLCJleHAiOjE3MjU5NTI0NjUsImRldmljZV9pZCI6Im5vdGhpbmctY2hhbmcifQ.T38frQNUe3ut2a5mIoNFvtQ718rzMR2k0MIHk6S3Qr0	4f9944c7-653a-45bd-85bc-da1712681a40	2024-08-27 07:14:25.095808	t
-eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiI0Zjk5NDRjNy02NTNhLTQ1YmQtODViYy1kYTE3MTI2ODFhNDAiLCJleHAiOjE3MjU5NTI5MDcsImRldmljZV9pZCI6Im5vdGhpbmctY2hhbmcifQ.Y01ntFw_6L1WdGcDLcueSf9W5Gqlcgh5aAsdjyfo3OU	4f9944c7-653a-45bd-85bc-da1712681a40	2024-08-27 07:21:47.15392	f
-eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiI0Zjk5NDRjNy02NTNhLTQ1YmQtODViYy1kYTE3MTI2ODFhNDAiLCJleHAiOjE3MjU5NzYwNTYsImRldmljZV9pZCI6Im5vdGhpbmctY2hhbmcifQ.FMah9SgRfyZGHFu2SNrqYOcUdc9IUVvvnmdM3zFzhDw	4f9944c7-653a-45bd-85bc-da1712681a40	2024-08-27 13:47:36.262762	f
-eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1aWQiOiI4ZWEzOWNlYy1hMTQyLTQ5MjUtYTJjZC0zNWQxMjE4OTYyNGQiLCJleHAiOjE3MjU5NzYxNjEsImRldmljZV9pZCI6Im5vdGhpbmctY2hhbmcifQ.mlDAEVUgOfb6A8J7pAKfT5EWppkKRjwa3bKi46KTD08	8ea39cec-a142-4925-a2cd-35d12189624d	2024-08-27 13:49:21.038804	f
 \.
 
 
@@ -1269,9 +1246,6 @@ COPY public.tag_type (tag_type_id, title, icon, description) FROM stdin;
 --
 
 COPY public.transcript_audio (audio_uid, admission_id, start_at, end_at, processed_at, previous_audio_uid) FROM stdin;
-23b064ed-c66a-45d9-8a9d-1ee9efed7af6	1	2024-08-27 14:05:51.113097	2024-08-27 14:06:51	2024-08-27 20:40:50.766711	\N
-165f94a2-807e-48bf-ad97-201a4d9f1376	1	2024-08-27 14:15:24.818851	2024-08-27 14:16:24	2024-08-27 20:41:15.393929	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-1a7f5905-41a9-40f2-adc8-df3a0dbd876f	1	2024-08-28 04:59:00	\N	\N	165f94a2-807e-48bf-ad97-201a4d9f1376
 \.
 
 
@@ -1280,161 +1254,6 @@ COPY public.transcript_audio (audio_uid, admission_id, start_at, end_at, process
 --
 
 COPY public.transcript_record (serial_id, admission_id, feature_id, datetime, content, audio_uid) FROM stdin;
-1	1	1	2024-08-25 18:03:56.118277	Hello, I am Dr. LED	b175a290-e747-4372-89e4-f7334825b5fd
-441	1	1	2024-08-27 14:05:51	我覺得我至少在暴風以前的人生	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-442	1	3	2024-08-27 14:05:54	我當失敗者當得很帥	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-2	1	3	2024-08-27 19:46:52	fasfasfasdfad	b175a290-e747-4372-89e4-f7334825b5fd
-443	1	3	2024-08-27 14:05:56	當得很自債	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-444	1	\N	2024-08-27 14:05:57	反正我很遷的	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-445	1	\N	2024-08-27 14:05:58	中央波羅文的節目	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-446	1	\N	2024-08-27 14:06:00	對	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-447	1	1	2024-08-27 14:06:01	第一幣	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-448	1	\N	2024-08-27 14:06:01	遠值住	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-449	1	1	2024-08-27 14:06:02	因為那個時候我們接觸的環境	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-450	1	3	2024-08-27 14:06:04	朋友全部都是	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-451	1	3	2024-08-27 14:06:05	聽團圈聽團展	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-452	1	1	2024-08-27 14:06:06	從頭到尾就直覺	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-453	1	3	2024-08-27 14:06:07	我們自己覺得好笑笑	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-454	1	1	2024-08-27 14:06:08	就圈的地下月團	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-455	1	3	2024-08-27 14:06:10	對	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-456	1	1	2024-08-27 14:06:10	像他在最討厭他們喜歡的團組的	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-457	1	3	2024-08-27 14:06:12	我話不是嗎	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-458	1	3	2024-08-27 14:06:13	那是比較低端的	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-459	1	\N	2024-08-27 14:06:15	對	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-460	1	\N	2024-08-27 14:06:16	聽團展真的好奇事練	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-461	1	\N	2024-08-27 14:06:17	其實練了	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-462	1	\N	2024-08-27 14:06:18	看看	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-463	1	1	2024-08-27 14:06:19	我個人反而比較冷結束	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-464	1	3	2024-08-27 14:06:22	有頭拍這樣	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-465	1	1	2024-08-27 14:06:23	結果我知道你是尊重我了	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-466	1	1	2024-08-27 14:06:25	我看完這樣	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-467	1	\N	2024-08-27 14:06:26	你只能在那	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-468	1	1	2024-08-27 14:06:27	永遠的在那兒拍	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-469	1	\N	2024-08-27 14:06:28	OK	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-470	1	1	2024-08-27 14:06:28	你憑什麼跟我這樣講話	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-471	1	3	2024-08-27 14:06:30	好 我就把他給他	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-472	1	\N	2024-08-27 14:06:31	給他	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-473	1	\N	2024-08-27 14:06:32	給他	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-474	1	\N	2024-08-27 14:06:33	給他	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-475	1	1	2024-08-27 14:06:33	OK	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-476	1	\N	2024-08-27 14:06:34	我們是不同的	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-477	1	\N	2024-08-27 14:06:34	讓人很感受	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-478	1	1	2024-08-27 14:06:37	如果你的心念心願	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-479	1	1	2024-08-27 14:06:38	包含提升英文能力	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-480	1	\N	2024-08-27 14:06:40	那你一定要實施這款	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-481	1	\N	2024-08-27 14:06:41	叫做Speak Day	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-482	1	\N	2024-08-27 14:06:42	Speak讓你設定任何會話場景	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-483	1	1	2024-08-27 14:06:44	和A.I.透過角色	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-484	1	\N	2024-08-27 14:06:45	辦理的方式練口說	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-485	1	\N	2024-08-27 14:06:46	Speak還會根據你的對話	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-486	1	\N	2024-08-27 14:06:48	推送你個人話	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-487	1	\N	2024-08-27 14:06:49	的祕密課程	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-488	1	\N	2024-08-27 14:06:50	每天只要十分	23b064ed-c66a-45d9-8a9d-1ee9efed7af6
-489	1	\N	2024-08-27 14:14:24	我覺得我至少在暴風以前的人生	165f94a2-807e-48bf-ad97-201a4d9f1376
-490	1	\N	2024-08-27 14:14:27	我當失敗者當得很帥	165f94a2-807e-48bf-ad97-201a4d9f1376
-491	1	\N	2024-08-27 14:14:29	當得很自債	165f94a2-807e-48bf-ad97-201a4d9f1376
-492	1	1	2024-08-27 14:14:30	反正我很遷的	165f94a2-807e-48bf-ad97-201a4d9f1376
-493	1	1	2024-08-27 14:14:31	中央波羅文的節目	165f94a2-807e-48bf-ad97-201a4d9f1376
-494	1	3	2024-08-27 14:14:33	對	165f94a2-807e-48bf-ad97-201a4d9f1376
-495	1	\N	2024-08-27 14:14:34	1B	165f94a2-807e-48bf-ad97-201a4d9f1376
-496	1	\N	2024-08-27 14:14:34	遠值住	165f94a2-807e-48bf-ad97-201a4d9f1376
-497	1	\N	2024-08-27 14:14:35	因為那個時候我們接觸的環境	165f94a2-807e-48bf-ad97-201a4d9f1376
-498	1	3	2024-08-27 14:14:37	朋友全部都是	165f94a2-807e-48bf-ad97-201a4d9f1376
-499	1	\N	2024-08-27 14:14:38	聽團圈聽團展	165f94a2-807e-48bf-ad97-201a4d9f1376
-500	1	\N	2024-08-27 14:14:39	從頭到尾就直覺	165f94a2-807e-48bf-ad97-201a4d9f1376
-501	1	\N	2024-08-27 14:14:40	我們自己覺得好笑笑	165f94a2-807e-48bf-ad97-201a4d9f1376
-502	1	\N	2024-08-27 14:14:41	一切就圈的地下月團	165f94a2-807e-48bf-ad97-201a4d9f1376
-503	1	\N	2024-08-27 14:14:43	對	165f94a2-807e-48bf-ad97-201a4d9f1376
-504	1	1	2024-08-27 14:14:43	像他在最討厭他們喜歡的團組的	165f94a2-807e-48bf-ad97-201a4d9f1376
-505	1	3	2024-08-27 14:14:45	有話不是嗎	165f94a2-807e-48bf-ad97-201a4d9f1376
-506	1	3	2024-08-27 14:14:46	嗯	165f94a2-807e-48bf-ad97-201a4d9f1376
-507	1	\N	2024-08-27 14:14:46	那是比較低端的	165f94a2-807e-48bf-ad97-201a4d9f1376
-508	1	3	2024-08-27 14:14:48	好可愛	165f94a2-807e-48bf-ad97-201a4d9f1376
-509	1	\N	2024-08-27 14:14:48	你看他在這裏還有騎士練	165f94a2-807e-48bf-ad97-201a4d9f1376
-510	1	\N	2024-08-27 14:14:50	有騎士練哦	165f94a2-807e-48bf-ad97-201a4d9f1376
-511	1	3	2024-08-27 14:14:51	你看他哦	165f94a2-807e-48bf-ad97-201a4d9f1376
-512	1	\N	2024-08-27 14:14:53	我個人反而比較冷結束	165f94a2-807e-48bf-ad97-201a4d9f1376
-513	1	\N	2024-08-27 14:14:55	有偷拍這樣子	165f94a2-807e-48bf-ad97-201a4d9f1376
-514	1	1	2024-08-27 14:14:56	結果我知道	165f94a2-807e-48bf-ad97-201a4d9f1376
-515	1	3	2024-08-27 14:14:57	你是尊重我了	165f94a2-807e-48bf-ad97-201a4d9f1376
-516	1	\N	2024-08-27 14:14:58	我看我這樣講	165f94a2-807e-48bf-ad97-201a4d9f1376
-517	1	\N	2024-08-27 14:14:59	你只能在那	165f94a2-807e-48bf-ad97-201a4d9f1376
-518	1	\N	2024-08-27 14:15:00	遠遠的在那兒	165f94a2-807e-48bf-ad97-201a4d9f1376
-519	1	3	2024-08-27 14:15:01	OK	165f94a2-807e-48bf-ad97-201a4d9f1376
-520	1	1	2024-08-27 14:15:01	你憑什麼跟我這樣講話	165f94a2-807e-48bf-ad97-201a4d9f1376
-521	1	3	2024-08-27 14:15:03	好 我就要一把	165f94a2-807e-48bf-ad97-201a4d9f1376
-522	1	3	2024-08-27 14:15:04	憑什麼	165f94a2-807e-48bf-ad97-201a4d9f1376
-523	1	\N	2024-08-27 14:15:06	OK	165f94a2-807e-48bf-ad97-201a4d9f1376
-524	1	1	2024-08-27 14:15:06	我們是不同了	165f94a2-807e-48bf-ad97-201a4d9f1376
-525	1	3	2024-08-27 14:15:07	讓人很感動	165f94a2-807e-48bf-ad97-201a4d9f1376
-526	1	\N	2024-08-27 14:15:10	如果你的心念心願	165f94a2-807e-48bf-ad97-201a4d9f1376
-527	1	\N	2024-08-27 14:15:11	保和提升因為能力	165f94a2-807e-48bf-ad97-201a4d9f1376
-528	1	\N	2024-08-27 14:15:13	那你一定要實施這款	165f94a2-807e-48bf-ad97-201a4d9f1376
-529	1	\N	2024-08-27 14:15:14	叫做Speak Day	165f94a2-807e-48bf-ad97-201a4d9f1376
-530	1	\N	2024-08-27 14:15:15	Speak讓你設定任何會話場景	165f94a2-807e-48bf-ad97-201a4d9f1376
-531	1	\N	2024-08-27 14:15:17	和A.I.透過角色	165f94a2-807e-48bf-ad97-201a4d9f1376
-532	1	\N	2024-08-27 14:15:18	半夜的方式練口說	165f94a2-807e-48bf-ad97-201a4d9f1376
-533	1	\N	2024-08-27 14:15:19	Speak還會根據你的對話	165f94a2-807e-48bf-ad97-201a4d9f1376
-534	1	\N	2024-08-27 14:15:21	推送你個人化的	165f94a2-807e-48bf-ad97-201a4d9f1376
-535	1	\N	2024-08-27 14:15:22	Mini Kerchan	165f94a2-807e-48bf-ad97-201a4d9f1376
-536	1	\N	2024-08-27 14:15:23	每天只要十分	165f94a2-807e-48bf-ad97-201a4d9f1376
-537	1	\N	2024-08-27 14:15:24	我覺得我	165f94a2-807e-48bf-ad97-201a4d9f1376
-538	1	\N	2024-08-27 14:15:25	至少在暴控以前的人生	165f94a2-807e-48bf-ad97-201a4d9f1376
-539	1	\N	2024-08-27 14:15:27	我當失敗者當得很帥	165f94a2-807e-48bf-ad97-201a4d9f1376
-540	1	\N	2024-08-27 14:15:29	當得很自在	165f94a2-807e-48bf-ad97-201a4d9f1376
-541	1	1	2024-08-27 14:15:30	反正我很遷	165f94a2-807e-48bf-ad97-201a4d9f1376
-542	1	1	2024-08-27 14:15:31	中央波羅門的節目	165f94a2-807e-48bf-ad97-201a4d9f1376
-543	1	3	2024-08-27 14:15:33	Yeah	165f94a2-807e-48bf-ad97-201a4d9f1376
-544	1	\N	2024-08-27 14:15:34	BB	165f94a2-807e-48bf-ad97-201a4d9f1376
-545	1	\N	2024-08-27 14:15:35	原子住	165f94a2-807e-48bf-ad97-201a4d9f1376
-546	1	\N	2024-08-27 14:15:35	因為那個時候	165f94a2-807e-48bf-ad97-201a4d9f1376
-547	1	\N	2024-08-27 14:15:36	我們接觸的環境	165f94a2-807e-48bf-ad97-201a4d9f1376
-548	1	3	2024-08-27 14:15:37	朋友全部都是	165f94a2-807e-48bf-ad97-201a4d9f1376
-549	1	\N	2024-08-27 14:15:38	聽團圈聽團展	165f94a2-807e-48bf-ad97-201a4d9f1376
-550	1	\N	2024-08-27 14:15:39	從頭到尾就直接覺得	165f94a2-807e-48bf-ad97-201a4d9f1376
-551	1	\N	2024-08-27 14:15:40	我們自己覺得好笑笑	165f94a2-807e-48bf-ad97-201a4d9f1376
-552	1	\N	2024-08-27 14:15:41	就圈得地下樂團	165f94a2-807e-48bf-ad97-201a4d9f1376
-553	1	\N	2024-08-27 14:15:42	對	165f94a2-807e-48bf-ad97-201a4d9f1376
-554	1	1	2024-08-27 14:15:43	像他們在最討厭他們	165f94a2-807e-48bf-ad97-201a4d9f1376
-555	1	3	2024-08-27 14:15:44	喜歡的團主流化	165f94a2-807e-48bf-ad97-201a4d9f1376
-556	1	3	2024-08-27 14:15:45	不是	165f94a2-807e-48bf-ad97-201a4d9f1376
-557	1	3	2024-08-27 14:15:46	嗯	165f94a2-807e-48bf-ad97-201a4d9f1376
-558	1	\N	2024-08-27 14:15:46	那是比較低端的	165f94a2-807e-48bf-ad97-201a4d9f1376
-559	1	3	2024-08-27 14:15:48	好可愛	165f94a2-807e-48bf-ad97-201a4d9f1376
-560	1	\N	2024-08-27 14:15:48	你看他在這裏還有騎士練哦	165f94a2-807e-48bf-ad97-201a4d9f1376
-561	1	\N	2024-08-27 14:15:50	其實練哦	165f94a2-807e-48bf-ad97-201a4d9f1376
-562	1	3	2024-08-27 14:15:51	我看他哦	165f94a2-807e-48bf-ad97-201a4d9f1376
-563	1	\N	2024-08-27 14:15:53	我個人	165f94a2-807e-48bf-ad97-201a4d9f1376
-564	1	\N	2024-08-27 14:15:54	反而比較冷結束	165f94a2-807e-48bf-ad97-201a4d9f1376
-565	1	\N	2024-08-27 14:15:55	有頭拍這樣子	165f94a2-807e-48bf-ad97-201a4d9f1376
-566	1	1	2024-08-27 14:15:56	結果我知道	165f94a2-807e-48bf-ad97-201a4d9f1376
-567	1	3	2024-08-27 14:15:57	你是尊重我了	165f94a2-807e-48bf-ad97-201a4d9f1376
-568	1	\N	2024-08-27 14:15:58	我看他	165f94a2-807e-48bf-ad97-201a4d9f1376
-569	1	\N	2024-08-27 14:15:59	你只能在那	165f94a2-807e-48bf-ad97-201a4d9f1376
-570	1	\N	2024-08-27 14:16:00	永遠的在那兒拍	165f94a2-807e-48bf-ad97-201a4d9f1376
-571	1	3	2024-08-27 14:16:01	OK	165f94a2-807e-48bf-ad97-201a4d9f1376
-572	1	1	2024-08-27 14:16:01	你憑什麼	165f94a2-807e-48bf-ad97-201a4d9f1376
-573	1	1	2024-08-27 14:16:02	跟我這樣講話	165f94a2-807e-48bf-ad97-201a4d9f1376
-574	1	3	2024-08-27 14:16:03	好	165f94a2-807e-48bf-ad97-201a4d9f1376
-575	1	3	2024-08-27 14:16:03	好 我就發揮吧	165f94a2-807e-48bf-ad97-201a4d9f1376
-576	1	3	2024-08-27 14:16:04	憑什麼	165f94a2-807e-48bf-ad97-201a4d9f1376
-577	1	3	2024-08-27 14:16:05	你憑什麼	165f94a2-807e-48bf-ad97-201a4d9f1376
-578	1	\N	2024-08-27 14:16:06	OK	165f94a2-807e-48bf-ad97-201a4d9f1376
-579	1	1	2024-08-27 14:16:06	我們是不同了	165f94a2-807e-48bf-ad97-201a4d9f1376
-580	1	3	2024-08-27 14:16:07	讓人很認識	165f94a2-807e-48bf-ad97-201a4d9f1376
-581	1	3	2024-08-27 14:16:08	好笑	165f94a2-807e-48bf-ad97-201a4d9f1376
-582	1	\N	2024-08-27 14:16:10	如果你的心念心念	165f94a2-807e-48bf-ad97-201a4d9f1376
-583	1	\N	2024-08-27 14:16:11	包含提升英文能力	165f94a2-807e-48bf-ad97-201a4d9f1376
-584	1	\N	2024-08-27 14:16:12	那你一定要實施這款	165f94a2-807e-48bf-ad97-201a4d9f1376
-585	1	\N	2024-08-27 14:16:14	叫做Speak的	165f94a2-807e-48bf-ad97-201a4d9f1376
-586	1	\N	2024-08-27 14:16:15	Speak讓你設定任何會話	165f94a2-807e-48bf-ad97-201a4d9f1376
-587	1	\N	2024-08-27 14:16:16	場景	165f94a2-807e-48bf-ad97-201a4d9f1376
-588	1	\N	2024-08-27 14:16:17	和A.I.透過角色	165f94a2-807e-48bf-ad97-201a4d9f1376
-589	1	\N	2024-08-27 14:16:18	半夜的方式練口說	165f94a2-807e-48bf-ad97-201a4d9f1376
-590	1	\N	2024-08-27 14:16:19	Speak還會根據你的對話	165f94a2-807e-48bf-ad97-201a4d9f1376
-591	1	\N	2024-08-27 14:16:21	推送你個人話的	165f94a2-807e-48bf-ad97-201a4d9f1376
-592	1	\N	2024-08-27 14:16:22	Mini Kerchan	165f94a2-807e-48bf-ad97-201a4d9f1376
-593	1	\N	2024-08-27 14:16:23	每天只要十分	165f94a2-807e-48bf-ad97-201a4d9f1376
 \.
 
 
@@ -1449,21 +1268,21 @@ SELECT pg_catalog.setval('public.admission_record_serial_id_seq', 1, true);
 -- Name: admission_reminder_order_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.admission_reminder_order_seq', 3, true);
+SELECT pg_catalog.setval('public.admission_reminder_order_seq', 7, true);
 
 
 --
 -- Name: admission_reminder_serial_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.admission_reminder_serial_id_seq', 3, true);
+SELECT pg_catalog.setval('public.admission_reminder_serial_id_seq', 7, true);
 
 
 --
 -- Name: admission_routine_serial_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.admission_routine_serial_id_seq', 4, true);
+SELECT pg_catalog.setval('public.admission_routine_serial_id_seq', 8, true);
 
 
 --
@@ -1498,7 +1317,7 @@ SELECT pg_catalog.setval('public.department_department_id_seq', 1, true);
 -- Name: device_device_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.device_device_id_seq', 6, true);
+SELECT pg_catalog.setval('public.device_device_id_seq', 13, true);
 
 
 --
@@ -1554,7 +1373,7 @@ SELECT pg_catalog.setval('public.model_model_id_seq', 1, true);
 -- Name: nurse_nurse_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.nurse_nurse_id_seq', 1, true);
+SELECT pg_catalog.setval('public.nurse_nurse_id_seq', 2, true);
 
 
 --
@@ -1568,7 +1387,7 @@ SELECT pg_catalog.setval('public.tag_type_tag_type_id_seq', 2, true);
 -- Name: transcript_record_serial_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.transcript_record_serial_id_seq', 593, true);
+SELECT pg_catalog.setval('public.transcript_record_serial_id_seq', 2218, true);
 
 
 --

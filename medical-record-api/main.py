@@ -59,8 +59,8 @@ for file_name in os.listdir("routers"):
         if hasattr(module, "setup"):
             getattr(module, "setup")(app)
 
-for file_name in os.listdir("tasks"):
-    if file_name.endswith(".py") and file_name != "__init__.py":
-        module = importlib.import_module(f"tasks.{file_name[:-3]}")
-        if hasattr(module, "run"):
-            multiprocessing.Process(target=getattr(module, "run")).start()
+# for file_name in os.listdir("tasks"):
+    # if file_name.endswith(".py") and file_name != "__init__.py":
+        # module = importlib.import_module(f"tasks.{file_name[:-3]}")
+        # if hasattr(module, "run"):
+            # multiprocessing.Process(target=getattr(module, "run")).start()

@@ -28,7 +28,7 @@ services:
               count: all
               capabilities: [ gpu ]
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - ./data/:/app/scripts/data/
       - ./tasks/:/app/scripts/tasks/
@@ -37,7 +37,8 @@ services:
       - ./utils/:/app/scripts/utils/
       - ./api-docs/:/app/scripts/api-docs/
       - ./main.py:/app/scripts/main.py
-    command: fastapi dev main.py --host 0.0.0.0
+      - ./supervisord.conf:/app/scripts/supervisord.conf
+    command: supervisord -c supervisord.conf
 
 volumes:
   postgres_data:
