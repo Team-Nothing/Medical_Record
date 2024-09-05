@@ -33,6 +33,13 @@ data class BedDeviceMedicalTranscriptRequest(
     val item_per_page: Int = 1000
 )
 
+data class TranscriptUploadBedDeviceRequest(
+    val file_md5: String,
+    val start_at: String,
+    val previous_audio_uid: String? = null,
+    val nearby_bluetooth_mac: List<String>
+)
+
 data class GenericResponse(
     val code: String,
     val message: String,
@@ -150,6 +157,16 @@ data class BedDevicePatientInfoResponse(
             val description: String?
         )
     }
+}
+
+data class TranscriptBedAudioUploadResponse(
+    val code: String,
+    val message: String,
+    val data: Data
+) {
+    data class Data(
+        val audio_uid: String
+    )
 }
 
 

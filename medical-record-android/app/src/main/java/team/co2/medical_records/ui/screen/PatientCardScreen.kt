@@ -183,17 +183,19 @@ fun DoctorCard(role: String, name: String, modifier: Modifier = Modifier, resour
                     contentDescription = "My Image",
                     modifier = Modifier
                         .aspectRatio(1f)
-                        .fillMaxHeight()
+                        .weight(1f)
                         .clip(CircleShape)
                 )
             } else {
                 Icon(painter = painterResource(resource), contentDescription = role,
                     tint = Color.Gray, modifier = Modifier
                         .aspectRatio(1f)
-                        .fillMaxHeight())
+                        .weight(1f)
+                        .fillMaxWidth(1 / 3f)
+                )
             }
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().weight(2f),
                 contentAlignment = Alignment.Center
             ) {
                 Text(text = name, fontWeight = FontWeight.Bold, fontSize = 22.sp)

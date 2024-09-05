@@ -4,7 +4,11 @@ import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -12,10 +16,11 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import team.co2.medical_records.ui.screen.LeftRight
 import team.co2.medical_records.ui.screen.Message
-import team.co2.medical_records.Reminder
-import team.co2.medical_records.Task
+import team.co2.medical_records.ui.screen.Reminder
+import team.co2.medical_records.ui.screen.Task
 import team.co2.medical_records.service.device.DeviceInformation
 import team.co2.medical_records.ui.screen.BluetoothDevice
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 
@@ -586,4 +591,63 @@ class MedicalRecordAPI(private val context: Context) {
         }
     }
 
+    fun transcriptBedAudioUpload(filePath: String, fileMd5: String, startAt: String, previousUid: String?, nearbyBluetoothMac: List<String>, ok: (audioUid: String) -> Unit, error: (code: DeviceError?) -> Unit) {
+        val session = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("session", "") ?: ""
+        val deviceRegisterId = context.getSharedPreferences("session", Context.MODE_PRIVATE).getString("device-register-id", "") ?: ""
+        if (deviceRegisterId.isEmpty()) {
+            error(DeviceError.MISSING_FIELDS)
+            return
+        }
+
+        val file = File(filePath)
+        if (!file.exists() || file.length() == 0L) {
+            Log.e("MedicalRecordAPI", "File does not exist or is empty: $filePath")
+            return
+        }
+        val requestFile = file.asRequestBody(MultipartBody.FORM)
+        val data = TranscriptUploadBedDeviceRequest(fileMd5, startAt, previousUid, nearbyBluetoothMac)
+        val gson: Gson = GsonBuilder()
+            .serializeNulls()
+            .create()
+        val uploadData = gson.toJson(data).toRequestBody("text/plain".toMediaTypeOrNull())
+        val uploadFilePart = MultipartBody.Part.createFormData("file", file.name, requestFile)
+
+        deviceInformation.getDeviceId { deviceId ->
+            if (deviceId == null) {
+                error(DeviceError.MISSING_DEVICE_ID)
+                return@getDeviceId
+            }
+            apiService.transcriptBedAudioUpload(session, deviceId, deviceRegisterId, uploadFilePart, uploadData)
+                .enqueue(object : Callback<TranscriptBedAudioUploadResponse> {
+                    override fun onResponse(
+                        call: Call<TranscriptBedAudioUploadResponse>,
+                        response: Response<TranscriptBedAudioUploadResponse>
+                    ) {
+                        when (response.body()?.code) {
+                            "OK" -> {
+                                val data = response.body()?.data
+                                if (data != null) {
+                                    ok(data.audio_uid)
+                                }
+                            }
+
+                            else -> {
+                                val failedBody = response.errorBody()?.string() ?: ""
+//                                val failed =
+//                                    Gson().fromJson(failedBody, GenericResponse::class.java)
+
+                                Log.e("MedicalRecordAPI", failedBody)
+
+//                                error(DeviceError.fromCode(failed.code))
+                            }
+                        }
+                    }
+
+                    override fun onFailure(call: Call<TranscriptBedAudioUploadResponse>, t: Throwable) {
+                        Log.e("MedicalRecordAPI", "transcriptBedAudioUpload: ${t.message}")
+                        error(DeviceError.NETWORK)
+                    }
+                })
+        }
+    }
 }

@@ -9,3 +9,8 @@ data class BluetoothResponse(
         val MAC: String
     )
 }
+
+data class ActionResponse(
+    val data: String,
+    val length: Int
+)

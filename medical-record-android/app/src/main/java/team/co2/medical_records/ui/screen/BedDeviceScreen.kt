@@ -2,6 +2,7 @@ package team.co2.medical_records.ui.screen
 
 import SettingScreen
 import android.content.Context
+import android.content.Intent
 import android.hardware.usb.UsbManager
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -23,16 +24,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.delay
-import team.co2.medical_records.Routine
 import team.co2.medical_records.ui.layout.NavigationItem
 import team.co2.medical_records.ui.layout.NavigationSideBar
 import team.co2.medical_records.R
-import team.co2.medical_records.Reminder
-import team.co2.medical_records.Task
-import team.co2.medical_records.service.bluetooth.BluetoothResponse
+import team.co2.medical_records.service.audio.AudioRecordingService
 import team.co2.medical_records.service.bluetooth.ESP32Communicator
 import team.co2.medical_records.service.medical_record_api.BedDevicePatientInfoResponse
 import team.co2.medical_records.service.medical_record_api.MedicalRecordAPI
@@ -48,13 +47,21 @@ fun BedDeviceScreen(
     var tasks by remember { mutableStateOf(emptyList<Task>()) }
     var patientInfo: BedDevicePatientInfoResponse.Data? by remember { mutableStateOf(null) }
     var messages by remember { mutableStateOf(emptyList<Message>()) }
-
+    var isRecording by remember { mutableStateOf(false) }
     var esp32SerialCommunicator: ESP32Communicator? = null
     val usbManager = getSystemService(context, UsbManager::class.java)
     if (usbManager != null) {
         esp32SerialCommunicator = ESP32Communicator(usbManager)
     }
 
+    val recordForegroundService = Intent(context, AudioRecordingService::class.java)
+    isRecording = LocalContext.current.getSharedPreferences("bed-device", Context.MODE_PRIVATE).getBoolean("isRecording", false)
+
+    if (isRecording) {
+        ContextCompat.startForegroundService(context, recordForegroundService)
+    } else {
+        context.stopService(recordForegroundService)
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -82,7 +89,7 @@ fun BedDeviceScreen(
                 Toast.makeText(mainNavController.context, it?.code ?: "Unknown", Toast.LENGTH_SHORT).show()
             })
 
-            delay(30000)
+            delay(10000)
         }
     }
 
@@ -133,7 +140,9 @@ fun BedDeviceScreen(
             unselectedIcon = painterResource(R.drawable.baseline_settings_24),
             hasNews = false,
             badgeCount = null,
-            layout = { SettingScreen(esp32SerialCommunicator, LocalContext.current) }
+            layout = { SettingScreen(esp32SerialCommunicator) {
+                isRecording = it
+            } }
         ),
     )
     var selectItemIndex by rememberSaveable { mutableIntStateOf(0) }
@@ -151,7 +160,9 @@ fun BedDeviceScreen(
         )
 
         Box(
-            modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp, bottom = 8.dp)
         ) {
             if (selectItemIndex in navigationItems.indices) {
                 navigationItems[selectItemIndex].layout()

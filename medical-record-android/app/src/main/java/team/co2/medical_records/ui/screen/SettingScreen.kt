@@ -1,11 +1,8 @@
 import android.content.Context
-import android.hardware.usb.UsbManager
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 //import androidx.compose.foundation.layout.FlowRowScopeInstance.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,28 +12,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.ui.res.painterResource
 import team.co2.medical_records.R
 import androidx.compose.material3.*
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat.getSystemService
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import team.co2.medical_records.service.bluetooth.BluetoothResponse
 import team.co2.medical_records.service.bluetooth.ESP32Communicator
 import team.co2.medical_records.ui.screen.BluetoothDevice
 import team.co2.medical_records.ui.screen.DeviceList
 
 
 @Composable
-fun SettingScreen(esp32SerialCommunicator: ESP32Communicator?, context: Context) {
+fun SettingScreen(esp32SerialCommunicator: ESP32Communicator?, onRecordChange: (isRecord: Boolean) -> Unit) {
     var bluetoothDevice: BluetoothDevice? by remember { mutableStateOf(null) }
     var usbDevices: List<UsbSerialDriver> by remember { mutableStateOf(emptyList()) }
+
+    var isRecording by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    isRecording = context.getSharedPreferences("bed-device", Context.MODE_PRIVATE).getBoolean("isRecording", false)
 
     LaunchedEffect(Unit) {
         while (isActive && esp32SerialCommunicator != null) {
@@ -53,10 +50,11 @@ fun SettingScreen(esp32SerialCommunicator: ESP32Communicator?, context: Context)
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
         ) {
             Column(
-                modifier = Modifier.wrapContentWidth(),
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .padding(32.dp, 0.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -68,17 +66,19 @@ fun SettingScreen(esp32SerialCommunicator: ESP32Communicator?, context: Context)
             Spacer(modifier = Modifier.width(20.dp))
             Column(
                 modifier = Modifier
-//                    .weight(1f)
                     .fillMaxHeight()
                     .fillMaxWidth()
                     .background(Color(0xFFF3E5F5), shape = RoundedCornerShape(16.dp))
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-
+                verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                 if (esp32SerialCommunicator != null) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().background(Color.White, shape = RoundedCornerShape(16.dp)).padding(8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White, shape = RoundedCornerShape(16.dp))
+                            .padding(16.dp)
                     ) {
                         Text(
                             text = "連接藍芽偵測器",
@@ -100,6 +100,36 @@ fun SettingScreen(esp32SerialCommunicator: ESP32Communicator?, context: Context)
                             bluetoothDevice = device
                         }
                     }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White, shape = RoundedCornerShape(16.dp))
+                            .padding(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "啟用錄音",
+                                color = Color.Black,
+                                fontSize = 16.sp,
+                                modifier = Modifier.padding(start = 8.dp) 
+                            )
+                            Text(
+                                text = "實現醫療紀錄轉錄功能",
+                                color = Color.Black,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                        Switch(modifier = Modifier.wrapContentWidth(), checked = isRecording, onCheckedChange = {
+                            context.getSharedPreferences(
+                                "bed-device", Context.MODE_PRIVATE
+                            ).edit().putBoolean("isRecording", it).apply()
+                            onRecordChange(it)
+                        })
+                    }
                 }
             }
 
@@ -109,45 +139,45 @@ fun SettingScreen(esp32SerialCommunicator: ESP32Communicator?, context: Context)
     }
 //}
 
-@Composable
-fun DropdownMenuSample() {
-    var expanded by remember { mutableStateOf(false) }
-    val options = listOf("Option 1", "Option 2", "Option 3")
-    var selectedOption by remember { mutableStateOf(options[0]) }
-
-    Box(modifier = Modifier.fillMaxWidth()) {
-        TextField(
-            value = selectedOption,
-            onValueChange = { },
-            readOnly = true,
-            label = { Text("裝置選擇") },
-            trailingIcon = {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.baseline_arrow_drop_down_24),
-                        contentDescription = "Dropdown Icon"
-                    )
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-        )
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        selectedOption = option
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
+//@Composable
+//fun DropdownMenuSample() {
+//    var expanded by remember { mutableStateOf(false) }
+//    val options = listOf("Option 1", "Option 2", "Option 3")
+//    var selectedOption by remember { mutableStateOf(options[0]) }
+//
+//    Box(modifier = Modifier.fillMaxWidth()) {
+//        TextField(
+//            value = selectedOption,
+//            onValueChange = { },
+//            readOnly = true,
+//            label = { Text("裝置選擇") },
+//            trailingIcon = {
+//                IconButton(onClick = { expanded = true }) {
+//                    Icon(
+//                        painter = painterResource(id = R.drawable.baseline_arrow_drop_down_24),
+//                        contentDescription = "Dropdown Icon"
+//                    )
+//                }
+//            },
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .background(Color.White)
+//        )
+//
+//        DropdownMenu(
+//            expanded = expanded,
+//            onDismissRequest = { expanded = false },
+//            modifier = Modifier.fillMaxWidth()
+//        ) {
+//            options.forEach { option ->
+//                DropdownMenuItem(
+//                    text = { Text(option) },
+//                    onClick = {
+//                        selectedOption = option
+//                        expanded = false
+//                    }
+//                )
+//            }
+//        }
+//    }
+//}
