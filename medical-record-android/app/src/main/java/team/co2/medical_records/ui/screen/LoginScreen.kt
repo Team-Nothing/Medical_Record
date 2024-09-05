@@ -1,6 +1,7 @@
 package team.co2.medical_records.ui.screen
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -136,6 +137,7 @@ fun LoginScreen(navController: NavHostController, medicalRecordAPI: MedicalRecor
                                     else -> navController.navigate("select-account-type")
                                 }
                             }, { code ->
+                                Log.w("LoginScreen", "Login failed: ${code?.code}")
                                 responseString = when (code) {
                                     AuthError.USERNAME_IS_EMPTY -> "帳號不能為空"
                                     AuthError.PASSWORD_IS_EMPTY -> "密碼不能為空"

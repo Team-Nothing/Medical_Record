@@ -87,7 +87,6 @@ fun NavigationSideBar(
                                     showBadge = isItemVisible(
                                         scrollState = scrollState,
                                         itemOffsetY = itemOffsetY,
-                                        itemHeight = itemHeight
                                     )
                                 )
                             },
@@ -155,12 +154,8 @@ fun NavigationIcon(
 fun isItemVisible(
     scrollState: ScrollState,
     itemOffsetY: Int,
-    itemHeight: Int
 ): Boolean {
     val viewportStart = scrollState.value
-    val viewportEnd = scrollState.value + scrollState.maxValue
-
-    Log.d("XDD", "viewportStart: $viewportStart, viewportEnd: $viewportEnd, itemOffsetY: $itemOffsetY, itemHeight: $itemHeight")
 
     return itemOffsetY - 24 > viewportStart
 }

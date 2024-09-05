@@ -5,6 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 interface ApiService {
     @GET("/")
@@ -45,6 +46,36 @@ interface ApiService {
         @Header("Device-Register-ID") deviceRegisterID: String,
         @Body request: BedDeviceLinkRequest
     ): Call<GenericResponse>
+
+    @GET("bed-device/patient-reminders")
+    fun bedDeviceGetPatientReminders(
+        @Header("Authorization") authToken: String,
+        @Header("X-Device-ID") deviceID: String,
+        @Header("Device-Register-ID") deviceRegisterID: String,
+    ): Call<BedDevicePatientReminders>
+
+    @GET("bed-device/patient-routine/{filterType}")
+    fun bedDeviceGetPatientRoutine(
+        @Header("Authorization") authToken: String,
+        @Header("X-Device-ID") deviceID: String,
+        @Header("Device-Register-ID") deviceRegisterID: String,
+        @Path("filterType") filterType: String
+    ): Call<BedDevicePatientRoutine>
+
+    @POST("bed-device/medical-transcript")
+    fun bedDeviceGetMedicalTranscript(
+        @Header("Authorization") authToken: String,
+        @Header("X-Device-ID") deviceID: String,
+        @Header("Device-Register-ID") deviceRegisterID: String,
+        @Body request: BedDeviceMedicalTranscriptRequest
+    ): Call<BedDeviceMedicalTranscriptResponse>
+
+    @GET("bed-device/patient-info")
+    fun bedDevicePatientInfo(
+        @Header("Authorization") authToken: String,
+        @Header("X-Device-ID") deviceID: String,
+        @Header("Device-Register-ID") deviceRegisterID: String,
+    ): Call<BedDevicePatientInfoResponse>
 }
 
 //interface LoginService {

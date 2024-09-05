@@ -141,15 +141,6 @@ fun LinkScreen(navController: NavHostController, medicalRecordAPI: MedicalRecord
             while (isActive) {
                 val deviceList = esp32SerialCommunicator.getAllUsbDevices()
                 usbDevices = deviceList
-                deviceList.forEach { device ->
-                    // Your processing logic
-                    device.device.manufacturerName
-                    device.device.productId
-                    Log.d(
-                        "Device",
-                        "Device: ${device.device.deviceName} ${device.device.deviceId} ${device.device.vendorId}"
-                    )
-                }
                 delay(3000)
             }
         }
@@ -225,7 +216,7 @@ fun LinkScreen(navController: NavHostController, medicalRecordAPI: MedicalRecord
                             fontSize = 12.sp,
                             modifier = Modifier.padding(start = 8.dp) // Adjust spacing as needed
                         )
-                        DeviceList(usbDevices, esp32SerialCommunicator!!) { device ->
+                        DeviceList(LocalContext.current, usbDevices, esp32SerialCommunicator!!) { device ->
                             bluetoothDevice = device
                         }
                     }
@@ -277,9 +268,10 @@ fun LinkScreen(navController: NavHostController, medicalRecordAPI: MedicalRecord
 }
 
 @Composable
-fun DeviceList(usbDevices: List<UsbSerialDriver>, esp32SerialCommunicator: ESP32Communicator, onBluetoothMacChange: (BluetoothDevice) -> Unit) {
+fun DeviceList(context: Context, usbDevices: List<UsbSerialDriver>, esp32SerialCommunicator: ESP32Communicator, onBluetoothMacChange: (BluetoothDevice) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     var selectedItem: UsbSerialDriver? by remember { mutableStateOf(null) }
+    var hasFound by remember { mutableStateOf(false) }
 
     var buttonWidth by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
@@ -287,19 +279,39 @@ fun DeviceList(usbDevices: List<UsbSerialDriver>, esp32SerialCommunicator: ESP32
 
     if (usbDevices.isEmpty()) {
         selectedItem = null
-    }
-
-    if (selectedItem != null) {
-        esp32SerialCommunicator.setDeviceConnection(selectedItem!!).startReading { data ->
-            Log.d("USB_DEVICE", data)
-            try {
-                val bluetoothData = Gson().fromJson(data, BluetoothResponse::class.java)
-                if (bluetoothData.MAC.isNotEmpty()) {
-                    onBluetoothMacChange(BluetoothDevice(selectedItem!!.device.deviceId, selectedItem!!.device.vendorId, bluetoothData.MAC))
+        hasFound = false
+    } else if (!hasFound) {
+        val index = esp32SerialCommunicator.findDevice(context, usbDevices)
+        Log.d("USB_DEVICE", "Index: $index")
+        if (index != -1) {
+            selectedItem = usbDevices[index]
+            hasFound = true
+            onBluetoothMacChange(
+                BluetoothDevice(
+                    selectedItem!!.device.deviceId,
+                    selectedItem!!.device.vendorId,
+                    selectedItem!!.device.deviceName
+                ),
+            )
+        } else if (selectedItem != null) {
+            esp32SerialCommunicator.setDeviceConnection(selectedItem!!).startReading { data ->
+                try {
+                    val bluetoothData = Gson().fromJson(data, BluetoothResponse::class.java)
+                    if (bluetoothData.MAC.isNotEmpty()) {
+                        hasFound = true
+                        esp32SerialCommunicator.saveData(selectedItem!!, context)
+                        onBluetoothMacChange(
+                            BluetoothDevice(
+                                selectedItem!!.device.deviceId,
+                                selectedItem!!.device.vendorId,
+                                bluetoothData.MAC
+                            ),
+                        )
+                        esp32SerialCommunicator.stopReading()
+                    }
+                } catch (e: Exception) {
+                    Log.e("USB_DEVICE", e.message ?: "Unknown error")
                 }
-                Log.w("BLUETOOTH_MAC", bluetoothData.MAC)
-            } catch (e: Exception) {
-                Log.e("USB_DEVIC　E", e.message ?: "Unknown error")
             }
         }
     }

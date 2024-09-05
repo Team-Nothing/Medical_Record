@@ -67,3 +67,14 @@ enum class AccountType(val type: String) {
     }
 }
 
+enum class FilterType(val type: String) {
+    CURRENT("CURRENT"),
+    ALL("ALL");
+
+    companion object {
+        fun fromType(type: String): FilterType {
+            return entries.find { it.type == type } ?: CURRENT
+        }
+    }
+}
+

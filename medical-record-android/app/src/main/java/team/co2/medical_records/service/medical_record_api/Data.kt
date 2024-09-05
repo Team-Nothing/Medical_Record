@@ -1,5 +1,7 @@
 package team.co2.medical_records.service.medical_record_api
 
+import org.intellij.lang.annotations.Language
+
 
 data class RegisterRequest(
     val username: String,
@@ -23,6 +25,14 @@ data class BedDeviceLinkRequest(
     val bed_id: String,
 )
 
+data class BedDeviceMedicalTranscriptRequest(
+    val start_date: String? = null,
+    val end_date: String? = null,
+    val page: Int = 1,
+    val order_by: String = "DESC",
+    val item_per_page: Int = 1000
+)
+
 data class GenericResponse(
     val code: String,
     val message: String,
@@ -36,7 +46,8 @@ data class LoginResponse(
     data class Data(
         val uid: String,
         val type: String,
-        val token: String
+        val token: String,
+        val device_register_id: String?
     )
 }
 
@@ -60,6 +71,86 @@ data class DeviceAddResponse(
     )
 }
 
+data class BedDevicePatientReminders(
+    val code: String,
+    val message: String,
+    val data: List<Data>
+) {
+    data class Data(
+        val title: String,
+        val finished: Boolean,
+    )
+}
+
+data class BedDevicePatientRoutine(
+    val code: String,
+    val message: String,
+    val data: List<Data>
+) {
+    data class Data(
+        val time: String,
+        val title: String,
+        val description: String? = null,
+        val finished: Boolean
+    )
+}
+
+data class BedDeviceMedicalTranscriptResponse(
+    val code: String,
+    val message: String,
+    val data: Data
+) {
+    data class Data(
+        val total_pages: Int,
+        val items: List<Item>
+    ) {
+        data class Item(
+            val id: Int,
+            val datetime: String,
+            val name: String?,
+            val content: String,
+        )
+    }
+}
+
+data class BedDevicePatientInfoResponse(
+    val code: String,
+    val message: String,
+    val data: Data
+) {
+    data class Data(
+        val has_patient: Boolean,
+        val bed: String?,
+        val admission_days: Int?,
+        val department: String?,
+        val doctor: NameImage?,
+        val resident: NameImage?,
+        val nurse: NameImage?,
+        val patient: Patient?,
+        val tags: List<Tags>
+    ) {
+        data class NameImage(
+            val name: String,
+            val image_uid: String?
+        )
+
+        data class Patient(
+            val name: String,
+            val image_uid: String?,
+            val language: String,
+            val age: String,
+            val gender: String,
+            val blood: String,
+            val feature_id: String
+        )
+
+        data class Tags(
+            val title: String,
+            val icon: String?,
+            val description: String?
+        )
+    }
+}
 
 
 //
