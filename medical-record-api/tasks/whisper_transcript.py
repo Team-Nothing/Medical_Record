@@ -169,10 +169,12 @@ def main():
 
             segment_waveform = waveform[:, start:end]
             print(segment_waveform.shape)
-
-            segment_waveform = speaking_embedding.average_channels(segment_waveform)
-            embedding = speaking_embedding.embedding_model(segment_waveform)
-            embeddings.append(embedding)
+            if segment_waveform.shape[1] == 0:
+                embeddings.append(np.zeros((1, 192)))
+            else:
+                segment_waveform = speaking_embedding.average_channels(segment_waveform)
+                embedding = speaking_embedding.embedding_model(segment_waveform)
+                embeddings.append(embedding)
 
         labels = None
         if len(embeddings) > 0:
@@ -194,14 +196,14 @@ def main():
                     admission_id,
                     None,
                     (start_time + datetime.timedelta(seconds=round(segments[i]["start"]))).strftime("%m/%d/%YT%H:%M:%S"),
-                    segments[i]["text"],
+                    segments[i]["text"].replace("'", "''"),
                     unprocessed_audio[0][1]
                 ]
                 end_time = (start_time + datetime.timedelta(seconds=round(segments[i]["end"]))).strftime("%m/%d/%YT%H:%M:%S"),
                 if labels is not None and labels[i] < len(features):
                     result[1] = features[labels[i]][0]
 
-                results.append(str(tuple(result)).replace("None", "NULL"))
+                results.append(str(tuple(result)).replace("None", "NULL").replace('"', "'"))
 
         if len(results) != 0:
             sql_connector.execute(
