@@ -1,8 +1,13 @@
 package team.co2.medical_records.ui.screen
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,17 +32,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.delay
 import team.co2.medical_records.R
 import team.co2.medical_records.service.medical_record_api.AccountType
 import team.co2.medical_records.service.medical_record_api.MedicalRecordAPI
+import team.co2.medical_records.ui.layout.RequestPermissions
 
 @Composable
 fun HelloScreen(navController: NavHostController, medicalRecordAPI: MedicalRecordAPI, context: Context) {
     var showError by remember { mutableStateOf(false) }
     var isCheckingStatus by remember { mutableStateOf(false) }
     var isFirst by remember { mutableStateOf(true) }
+    var permissionsGranted by remember { mutableStateOf(false) }
 
     fun getStatus() {
         medicalRecordAPI.status({
@@ -60,6 +68,11 @@ fun HelloScreen(navController: NavHostController, medicalRecordAPI: MedicalRecor
         }, { _ ->
             showError = true
         })
+    }
+
+    RequestPermissions(context) { isGranted ->
+        Log.d("HelloScreen", "permissionsGranted: $isGranted")
+        permissionsGranted = isGranted
     }
 
     Box(
@@ -116,18 +129,18 @@ fun HelloScreen(navController: NavHostController, medicalRecordAPI: MedicalRecor
         )
     }
 
-    if (isCheckingStatus) {
-        LaunchedEffect(Unit) {
-            Toast.makeText(context, "等待 5 秒後嘗試重新連線 ...", Toast.LENGTH_SHORT).show()
-            delay(5000)
-            isCheckingStatus = false
-            getStatus()
-        }
-    } else if (isFirst) {
-        isFirst = false
-        LaunchedEffect(Unit) {
-            delay(1500)
-            getStatus()
+    LaunchedEffect(permissionsGranted) {
+        if (permissionsGranted) {
+            if (isCheckingStatus) {
+                Toast.makeText(context, "等待 5 秒後嘗試重新連線 ...", Toast.LENGTH_SHORT).show()
+                delay(5000)
+                isCheckingStatus = false
+                getStatus()
+            } else if (isFirst) {
+                isFirst = false
+                delay(1500)
+                getStatus()
+            }
         }
     }
 }

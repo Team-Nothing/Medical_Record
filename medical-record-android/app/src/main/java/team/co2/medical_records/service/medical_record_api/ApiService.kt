@@ -1,10 +1,14 @@
 package team.co2.medical_records.service.medical_record_api
 
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 
 interface ApiService {
@@ -76,33 +80,14 @@ interface ApiService {
         @Header("X-Device-ID") deviceID: String,
         @Header("Device-Register-ID") deviceRegisterID: String,
     ): Call<BedDevicePatientInfoResponse>
+
+    @Multipart
+    @POST("transcript/bed-audio-upload")
+    fun transcriptBedAudioUpload(
+        @Header("Authorization") authToken: String,
+        @Header("X-Device-ID") deviceID: String,
+        @Header("Device-Register-ID") deviceRegisterID: String,
+        @Part file: MultipartBody.Part,
+        @Part("data") data: RequestBody
+    ): Call<TranscriptBedAudioUploadResponse>
 }
-
-//interface LoginService {
-//    @POST("auth/login")
-//    @Headers("X-Device-ID" to session)
-//    fun login(@Body request: LoginRequest): Call<LoginResponse>
-//}
-//
-//interface CheckSessionService {
-//    @Headers("Authorization: Bearer $token")
-//    @POST("auth/check-session")
-//    fun getData(): Call<CheckSessionResponse>
-//}
-//
-//interface RenewSessionService {
-//    @Headers("Authorization: Bearer $token")
-//    @POST("auth/renew-session")
-//    fun renewSession(@Body request: RenewSessionRequest): Call<RenewSessionResponse>
-//}
-//
-//interface resetPasswordService {
-//    @POST("auth/reset-password")
-//    fun resetPassword(@Body request: resetPasswordRequest): Call<resetPasswordResponse>
-//}
-//
-//interface authenticateService {
-//    @POST("auth/change-password")
-//    fun changePassword(@Body request: authenticateRequest): Call<changePasswordResponse>
-//}
-

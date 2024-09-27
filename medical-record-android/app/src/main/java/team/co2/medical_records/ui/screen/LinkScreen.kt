@@ -282,7 +282,6 @@ fun DeviceList(context: Context, usbDevices: List<UsbSerialDriver>, esp32SerialC
         hasFound = false
     } else if (!hasFound) {
         val index = esp32SerialCommunicator.findDevice(context, usbDevices)
-        Log.d("USB_DEVICE", "Index: $index")
         if (index != -1) {
             selectedItem = usbDevices[index]
             hasFound = true
@@ -294,9 +293,8 @@ fun DeviceList(context: Context, usbDevices: List<UsbSerialDriver>, esp32SerialC
                 ),
             )
         } else if (selectedItem != null) {
-            esp32SerialCommunicator.setDeviceConnection(selectedItem!!).startReading { data ->
+            esp32SerialCommunicator.setDeviceConnection(selectedItem!!).startReading { bluetoothData ->
                 try {
-                    val bluetoothData = Gson().fromJson(data, BluetoothResponse::class.java)
                     if (bluetoothData.MAC.isNotEmpty()) {
                         hasFound = true
                         esp32SerialCommunicator.saveData(selectedItem!!, context)

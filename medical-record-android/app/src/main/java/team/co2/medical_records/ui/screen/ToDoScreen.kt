@@ -1,4 +1,4 @@
-package team.co2.medical_records
+package team.co2.medical_records.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
