@@ -63,7 +63,7 @@ async def bed_audio_upload(
             })
 
         admission = sql_connector.query(
-            "SELECT ar.serial_id "
+            "SELECT ar.serial_id, ar.patient_id "
             + "FROM admission_record AS ar "
             + "INNER JOIN bed_device as bd ON ar.bed_id = bd.bed_id "
             + "WHERE bd.device_id = %s AND ar.discharge_date IS NULL",
@@ -105,14 +105,22 @@ async def bed_audio_upload(
             (nearby_bluetooth_mac,)
         )
 
-        if nearby_features is not None:
+        if nearby_features is None:
+            features = []
+        else:
+            features = [feature[0] for feature in nearby_features]
 
-            for feature in nearby_features:
-                sql_connector.query(
-                    "INSERT INTO nearby_feature (audio_uid, feature_id) VALUES (%s, %s)",
-                    (object_uid, feature[0]),
-                    execute=True
-                )
+        features.append(sql.query(
+            "SELECT feature_id FROM patient WHERE uid = %s",
+            (admission[0][1],)
+        )[0][0])
+
+        for feature in features:
+            sql_connector.query(
+                "INSERT INTO nearby_feature (audio_uid, feature_id) VALUES (%s, %s)",
+                (object_uid, feature[0]),
+                execute=True
+            )
 
         sql_connector.execute(
             "INSERT INTO transcript_audio (audio_uid, admission_id, start_at, previous_audio_uid) VALUES (%s, %s, %s, %s)",
